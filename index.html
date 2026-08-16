@@ -216,7 +216,8 @@
   .modal-meta{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:16px; }
   .modal-summary{ color: var(--text); line-height:1.6; font-size:15px; margin: 0 0 20px; }
   .modal-shots{ display:grid; grid-template-columns: repeat(auto-fill, minmax(140px,1fr)); gap:8px; margin-bottom:22px; }
-  .modal-shots img{ width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:4px; border:1px solid var(--line); }
+  .modal-shots img{ width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:4px; border:1px solid var(--line); cursor: zoom-in; transition: border-color .15s ease; }
+  .modal-shots img:hover{ border-color: var(--neon-cyan); }
   .modal-actions{ display:flex; gap:10px; }
   .modal-actions a{
     flex:1; text-align:center; text-decoration:none; padding:12px; border-radius:4px;
@@ -226,6 +227,18 @@
   .modal-actions a.trailer:hover{ border-color: var(--neon-pink); color: var(--neon-pink); }
   .modal-actions a.walkthrough:hover{ border-color: var(--neon-yellow); color: var(--neon-yellow); }
   .modal-loading{ padding: 60px 20px; text-align:center; color: var(--muted); font-family:'Share Tech Mono',monospace; }
+  .lightbox{
+    position: fixed; inset:0; background: rgba(4,3,10,0.94); z-index: 60;
+    display:none; align-items:center; justify-content:center; padding: 30px;
+  }
+  .lightbox.open{ display:flex; }
+  .lightbox img{ max-width: 100%; max-height: 90vh; border-radius: 4px; box-shadow: 0 0 40px rgba(0,240,255,0.2); }
+  .lightbox-close{
+    position:absolute; top:20px; right:24px; width:38px; height:38px; border-radius:50%;
+    background: rgba(10,7,20,0.8); border:1px solid var(--line-bright); color: var(--text);
+    cursor:pointer; font-size:20px; display:flex; align-items:center; justify-content:center;
+  }
+  .lightbox-close:hover{ border-color: var(--neon-pink); color: var(--neon-pink); }
 </style>
 </head>
 <body>
@@ -272,7 +285,7 @@
 
 <div class="results-bar">
   <span id="resultsCount">—</span>
-  <span id="sortLabel">SORT: RATING ▾</span>
+  <span id="sortLabel">SORT: ΝΕΟΤΕΡΑ ▾</span>
 </div>
 
 <main>
@@ -285,6 +298,11 @@
 
 <div class="modal-backdrop" id="modalBackdrop">
   <div class="modal" id="modalContent"></div>
+</div>
+
+<div class="lightbox" id="lightbox">
+  <button class="lightbox-close" id="lightboxClose">✕</button>
+  <img id="lightboxImg" src="" alt="Στιγμιότυπο σε μεγέθυνση">
 </div>
 
 <script>
@@ -305,6 +323,12 @@
   const searchClear = document.getElementById("searchClear");
   const modalBackdrop = document.getElementById("modalBackdrop");
   const modalContent = document.getElementById("modalContent");
+  const lightbox = document.getElementById("lightbox");
+  const lightboxImg = document.getElementById("lightboxImg");
+  const lightboxClose = document.getElementById("lightboxClose");
+
+  lightboxClose.addEventListener("click", () => lightbox.classList.remove("open"));
+  lightbox.addEventListener("click", (e) => { if(e.target === lightbox) lightbox.classList.remove("open"); });
 
   let state = { search:"", genre:"", platform:"", rating:0, year:"", offset:0, loading:false };
   let debounceTimer = null;
@@ -352,7 +376,10 @@
     if(e.target === modalBackdrop) closeModal();
   });
   document.addEventListener("keydown", (e) => {
-    if(e.key === "Escape") closeModal();
+    if(e.key === "Escape"){
+      if(lightbox.classList.contains("open")) lightbox.classList.remove("open");
+      else closeModal();
+    }
   });
   function closeModal(){
     modalBackdrop.classList.remove("open");
@@ -399,7 +426,7 @@
           ${platforms.map(p => `<span class="tag">${escapeHtml(p)}</span>`).join("")}
         </div>
         ${game.summary ? `<p class="modal-summary">${escapeHtml(game.summary)}</p>` : ""}
-        ${shots.length ? `<div class="modal-shots">${shots.map(s => `<img src="${s}" loading="lazy" alt="Στιγμιότυπο">`).join("")}</div>` : ""}
+        ${shots.length ? `<div class="modal-shots">${shots.map(s => `<img src="${s}" loading="lazy" alt="Στιγμιότυπο" data-full="${s}">`).join("")}</div>` : ""}
         <div class="modal-actions">
           <a class="trailer" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query=${encodedName}+trailer">Trailer ↗</a>
           <a class="walkthrough" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query=${encodedName}+walkthrough">Walkthrough ↗</a>
@@ -407,6 +434,12 @@
       </div>
     `;
     document.getElementById("modalCloseBtn").addEventListener("click", closeModal);
+    modalContent.querySelectorAll(".modal-shots img").forEach(img => {
+      img.addEventListener("click", () => {
+        lightboxImg.src = img.dataset.full.replace("t_screenshot_big", "t_1080p");
+        lightbox.classList.add("open");
+      });
+    });
   }
 
   yearSelect.addEventListener("change", () => {
@@ -480,6 +513,8 @@
       clauses.push(`first_release_date >= ${start} & first_release_date <= ${end}`);
     }
     if(state.search) clauses.push(`name ~ *"${state.search.replace(/"/g,'')}"*`);
+    if(!state.year) clauses.push(`first_release_date <= ${Math.floor(Date.now()/1000)}`);
+    clauses.push(`cover != null`);
     return clauses.length ? `where ${clauses.join(" & ")};` : "";
   }
 
@@ -497,7 +532,7 @@
     }
 
     try{
-      const sortField = state.search ? "" : "sort aggregated_rating desc;";
+      const sortField = state.search ? "" : "sort first_release_date desc;";
       const query = `fields name, cover.image_id, aggregated_rating, first_release_date, genres.name, platforms.name; ${buildWhere()} ${sortField} limit ${PAGE_SIZE}; offset ${state.offset};`;
       const data = await igdb("games", query);
 
