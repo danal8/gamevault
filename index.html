@@ -90,6 +90,14 @@
   .search-box input::placeholder{ color: var(--muted); }
   .search-box input:focus{ border-color: var(--neon-cyan); box-shadow: 0 0 0 1px var(--neon-cyan), 0 0 18px rgba(0,240,255,0.35); }
   .search-box svg{ position:absolute; left:15px; top:50%; transform:translateY(-50%); width:18px; height:18px; stroke: var(--neon-cyan); }
+  .search-clear{
+    position:absolute; right:12px; top:50%; transform:translateY(-50%);
+    width:26px; height:26px; border-radius:50%; border:1px solid var(--line);
+    background: rgba(58,42,92,0.6); color: var(--muted); cursor:pointer;
+    display:none; align-items:center; justify-content:center; font-size:15px; line-height:1;
+  }
+  .search-clear:hover{ border-color: var(--neon-pink); color: var(--neon-pink); }
+  .search-clear.visible{ display:flex; }
   select.year-select{
     background: rgba(21,15,40,0.85); border: 1px solid var(--line-bright); color: var(--text);
     border-radius: 4px; padding: 0 16px; font-size: 14px; font-family: 'Rajdhani', sans-serif; font-weight: 500; cursor:pointer;
@@ -125,7 +133,9 @@
     transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
   }
   .card:hover{ transform: translateY(-4px); border-color: var(--neon-cyan); box-shadow: 0 0 22px rgba(0,240,255,0.25); }
-  .card-image{ width:100%; aspect-ratio: 16/9; background: var(--panel-2); object-fit: cover; display:block; }
+  .card-image-wrap{ width:100%; aspect-ratio: 3/4; background: var(--panel-2); overflow:hidden; }
+  .card-image{ width:100%; height:100%; object-fit: cover; object-position: center top; display:block; }
+  .card{ cursor: pointer; }
   .card-body{ padding: 15px 15px 17px; display:flex; flex-direction: column; gap: 9px; flex:1; }
   .card-top{ display:flex; justify-content: space-between; align-items:flex-start; gap: 10px; }
   .card-title{ font-family:'Rajdhani', sans-serif; font-weight:700; font-size: 16px; line-height:1.25; }
@@ -180,6 +190,42 @@
     .card, .chip, .load-more, .card-actions a{ transition: none; }
     .spinner{ animation: none; }
   }
+
+  /* ---------- Detail modal ---------- */
+  .modal-backdrop{
+    position: fixed; inset:0; background: rgba(6,4,14,0.85);
+    display:none; align-items:flex-start; justify-content:center;
+    padding: 40px 20px; overflow-y:auto; z-index: 50;
+  }
+  .modal-backdrop.open{ display:flex; }
+  .modal{
+    background: var(--panel); border:1px solid var(--line-bright); border-radius: 8px;
+    max-width: 760px; width:100%; overflow:hidden;
+    box-shadow: 0 0 40px rgba(168,85,247,0.25);
+  }
+  .modal-close{
+    position:absolute; top:14px; right:14px; width:34px; height:34px; border-radius:50%;
+    background: rgba(10,7,20,0.7); border:1px solid var(--line-bright); color: var(--text);
+    cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center; z-index:2;
+  }
+  .modal-close:hover{ border-color: var(--neon-pink); color: var(--neon-pink); }
+  .modal-header{ position:relative; }
+  .modal-cover{ width:100%; max-height: 320px; object-fit: cover; object-position: center 20%; display:block; }
+  .modal-body{ padding: 22px 26px 28px; }
+  .modal-title{ font-family:'Orbitron', sans-serif; font-weight:800; font-size:22px; margin:0 0 10px; }
+  .modal-meta{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:16px; }
+  .modal-summary{ color: var(--text); line-height:1.6; font-size:15px; margin: 0 0 20px; }
+  .modal-shots{ display:grid; grid-template-columns: repeat(auto-fill, minmax(140px,1fr)); gap:8px; margin-bottom:22px; }
+  .modal-shots img{ width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:4px; border:1px solid var(--line); }
+  .modal-actions{ display:flex; gap:10px; }
+  .modal-actions a{
+    flex:1; text-align:center; text-decoration:none; padding:12px; border-radius:4px;
+    font-family:'Rajdhani',sans-serif; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;
+    border:1px solid var(--line-bright); color: var(--text); transition: all .15s ease;
+  }
+  .modal-actions a.trailer:hover{ border-color: var(--neon-pink); color: var(--neon-pink); }
+  .modal-actions a.walkthrough:hover{ border-color: var(--neon-yellow); color: var(--neon-yellow); }
+  .modal-loading{ padding: 60px 20px; text-align:center; color: var(--muted); font-family:'Share Tech Mono',monospace; }
 </style>
 </head>
 <body>
@@ -197,6 +243,7 @@
       <div class="search-box">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input id="searchInput" type="text" placeholder="Αναζήτηση τίτλου (π.χ. Elden Ring, Zelda...)">
+        <button id="searchClear" class="search-clear" type="button" aria-label="Καθαρισμός αναζήτησης">✕</button>
       </div>
       <select id="yearSelect" class="year-select"></select>
     </div>
@@ -236,6 +283,10 @@
   </div>
 </main>
 
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal" id="modalContent"></div>
+</div>
+
 <script>
 (function(){
   const PROXY_URL = "https://odtbtugzilxsfqxlpofq.supabase.co/functions/v1/igdb-proxy";
@@ -251,6 +302,9 @@
   const ratingRow = document.getElementById("ratingRow");
   const loadMoreWrap = document.getElementById("loadMoreWrap");
   const loadMoreBtn = document.getElementById("loadMoreBtn");
+  const searchClear = document.getElementById("searchClear");
+  const modalBackdrop = document.getElementById("modalBackdrop");
+  const modalContent = document.getElementById("modalContent");
 
   let state = { search:"", genre:"", platform:"", rating:0, year:"", offset:0, loading:false };
   let debounceTimer = null;
@@ -276,6 +330,7 @@
   fetchGames(true);
 
   searchInput.addEventListener("input", () => {
+    searchClear.classList.toggle("visible", searchInput.value.length > 0);
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
       state.search = searchInput.value.trim();
@@ -283,6 +338,76 @@
       fetchGames(true);
     }, 450);
   });
+
+  searchClear.addEventListener("click", () => {
+    searchInput.value = "";
+    searchClear.classList.remove("visible");
+    state.search = "";
+    state.offset = 0;
+    fetchGames(true);
+    searchInput.focus();
+  });
+
+  modalBackdrop.addEventListener("click", (e) => {
+    if(e.target === modalBackdrop) closeModal();
+  });
+  document.addEventListener("keydown", (e) => {
+    if(e.key === "Escape") closeModal();
+  });
+  function closeModal(){
+    modalBackdrop.classList.remove("open");
+    modalContent.innerHTML = "";
+  }
+
+  async function openGameDetail(gameId, gameName){
+    modalBackdrop.classList.add("open");
+    modalContent.innerHTML = `<button class="modal-close" id="modalCloseBtn">✕</button><div class="modal-loading"><div class="spinner"></div>ΦΟΡΤΩΣΗ ΛΕΠΤΟΜΕΡΕΙΩΝ...</div>`;
+    document.getElementById("modalCloseBtn").addEventListener("click", closeModal);
+    try{
+      const query = `fields name, summary, cover.image_id, screenshots.image_id, aggregated_rating, first_release_date, genres.name, platforms.name; where id = ${gameId};`;
+      const data = await igdb("games", query);
+      const game = (data || [])[0];
+      if(!game){ modalContent.innerHTML = `<button class="modal-close" id="modalCloseBtn">✕</button><div class="modal-loading">Δεν βρέθηκαν λεπτομέρειες.</div>`; document.getElementById("modalCloseBtn").addEventListener("click", closeModal); return; }
+      renderModal(game);
+    }catch(err){
+      console.error("Σφάλμα λεπτομερειών:", err);
+      modalContent.innerHTML = `<button class="modal-close" id="modalCloseBtn">✕</button><div class="modal-loading">Πρόβλημα φόρτωσης. Δοκίμασε ξανά.</div>`;
+      document.getElementById("modalCloseBtn").addEventListener("click", closeModal);
+    }
+  }
+
+  function renderModal(game){
+    const cover = game.cover && game.cover.image_id ? `${IMG_BASE}/t_1080p/${game.cover.image_id}.jpg` : "";
+    const shots = (game.screenshots || []).slice(0, 6).map(s => `${IMG_BASE}/t_screenshot_big/${s.image_id}.jpg`);
+    const score = game.aggregated_rating ? Math.round(game.aggregated_rating) : null;
+    const year = game.first_release_date ? new Date(game.first_release_date * 1000).getFullYear() : "—";
+    const genres = (game.genres || []).map(g => g.name);
+    const platforms = (game.platforms || []).map(p => p.name);
+    const encodedName = encodeURIComponent(game.name);
+
+    modalContent.innerHTML = `
+      <button class="modal-close" id="modalCloseBtn">✕</button>
+      <div class="modal-header">
+        ${cover ? `<img class="modal-cover" src="${cover}" alt="${escapeHtml(game.name)}">` : ""}
+      </div>
+      <div class="modal-body">
+        <h2 class="modal-title">${escapeHtml(game.name)}</h2>
+        <div class="modal-meta">
+          <span class="score-chip ${scoreClass(score)}">${score ?? "—"}</span>
+          <span class="tag">${year}</span>
+          ${genres.map(g => `<span class="tag">${escapeHtml(g)}</span>`).join("")}
+          ${platforms.map(p => `<span class="tag">${escapeHtml(p)}</span>`).join("")}
+        </div>
+        ${game.summary ? `<p class="modal-summary">${escapeHtml(game.summary)}</p>` : ""}
+        ${shots.length ? `<div class="modal-shots">${shots.map(s => `<img src="${s}" loading="lazy" alt="Στιγμιότυπο">`).join("")}</div>` : ""}
+        <div class="modal-actions">
+          <a class="trailer" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query=${encodedName}+trailer">Trailer ↗</a>
+          <a class="walkthrough" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query=${encodedName}+walkthrough">Walkthrough ↗</a>
+        </div>
+      </div>
+    `;
+    document.getElementById("modalCloseBtn").addEventListener("click", closeModal);
+  }
 
   yearSelect.addEventListener("change", () => {
     state.year = yearSelect.value;
@@ -416,7 +541,9 @@
     const encodedName = encodeURIComponent(game.name);
 
     card.innerHTML = `
-      ${img ? `<img class="card-image" loading="lazy" src="${img}" alt="${escapeHtml(game.name)}">` : `<div class="card-image"></div>`}
+      <div class="card-image-wrap">
+        ${img ? `<img class="card-image" loading="lazy" src="${img}" alt="${escapeHtml(game.name)}">` : ""}
+      </div>
       <div class="card-body">
         <div class="card-top">
           <div class="card-title">${escapeHtml(game.name)}</div>
@@ -433,6 +560,10 @@
         </div>
       </div>
     `;
+    card.addEventListener("click", (e) => {
+      if(e.target.closest("a")) return;
+      openGameDetail(game.id, game.name);
+    });
     return card;
   }
 
