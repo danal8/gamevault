@@ -557,7 +557,6 @@
     if(state.search){
       const words = state.search.replace(/"/g,'').trim().split(/\s+/);
       words.forEach(w => clauses.push(`name ~ *"${w}"*`));
-      clauses.push(`category = (0,4,8,9,10)`);
     }
     if(!state.year) clauses.push(`first_release_date <= ${Math.floor(Date.now()/1000)}`);
     clauses.push(`cover != null`);
