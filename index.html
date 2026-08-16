@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GameVault — Κατάλογος Παιχνιδιών</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #14171c;
+    --panel: #1b1f27;
+    --panel-2: #21262f;
+    --line: #2a303c;
+    --text: #e8eaed;
+    --muted: #8b93a1;
+    --signal: #baff29;
+    --signal-dim: #8fd11c;
+    --amber: #ffb020;
+    --danger: #ff5f5f;
+    --radius: 10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height:100vh;
+  }
+  ::selection{ background: var(--signal); color:#0c0f13; }
+
+  /* ---------- Header / Hero ---------- */
+  header.hero{
+    padding: 48px 24px 28px;
+    max-width: 1180px;
+    margin: 0 auto;
+    border-bottom: 1px solid var(--line);
+  }
+  .brand{
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+    margin-bottom: 22px;
+  }
+  .brand-mark{
+    font-family:'JetBrains Mono', monospace;
+    font-weight:700;
+    color:#0c0f13;
+    background: var(--signal);
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 14px;
+    letter-spacing: 0.5px;
+  }
+  .brand-name{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:700;
+    font-size: 20px;
+    letter-spacing: -0.02em;
+  }
+  h1.title{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:700;
+    font-size: clamp(30px, 5vw, 46px);
+    line-height: 1.08;
+    margin: 0 0 10px;
+    letter-spacing: -0.02em;
+    max-width: 640px;
+  }
+  h1.title span{ color: var(--signal); }
+  p.subtitle{
+    color: var(--muted);
+    font-size: 15px;
+    margin: 0 0 26px;
+    max-width: 520px;
+  }
+
+  .search-row{
+    display:flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .search-box{
+    flex: 1 1 320px;
+    position: relative;
+  }
+  .search-box input{
+    width: 100%;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    color: var(--text);
+    padding: 14px 16px 14px 42px;
+    border-radius: var(--radius);
+    font-size: 15px;
+    font-family: 'Inter', sans-serif;
+    outline: none;
+    transition: border-color .15s ease;
+  }
+  .search-box input:focus{ border-color: var(--signal); }
+  .search-box svg{
+    position:absolute; left:14px; top:50%; transform:translateY(-50%);
+    width:18px; height:18px; stroke: var(--muted);
+  }
+  select.year-select{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    color: var(--text);
+    border-radius: var(--radius);
+    padding: 0 14px;
+    font-size: 14px;
+    font-family: 'Inter', sans-serif;
+    cursor:pointer;
+  }
+
+  /* ---------- Filter chips ---------- */
+  .filters{
+    max-width: 1180px;
+    margin: 20px auto 0;
+    padding: 0 24px;
+    display:flex;
+    gap: 22px;
+    flex-wrap: wrap;
+  }
+  .filter-group{
+    display:flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .filter-label{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .chip-row{ display:flex; gap:6px; flex-wrap:wrap; }
+  .chip{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    color: var(--muted);
+    padding: 6px 12px;
+    border-radius: 100px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all .15s ease;
+    white-space: nowrap;
+  }
+  .chip:hover{ border-color:#3a4150; color: var(--text); }
+  .chip.active{
+    background: var(--signal);
+    border-color: var(--signal);
+    color: #0c0f13;
+    font-weight: 600;
+  }
+
+  /* ---------- Results meta ---------- */
+  .results-bar{
+    max-width: 1180px;
+    margin: 26px auto 0;
+    padding: 0 24px;
+    display:flex;
+    justify-content: space-between;
+    align-items:center;
+    color: var(--muted);
+    font-size: 13px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ---------- Grid ---------- */
+  main{
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 18px 24px 70px;
+  }
+  .grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 18px;
+    margin-top: 12px;
+  }
+  .card{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+    display:flex;
+    flex-direction: column;
+    transition: transform .15s ease, border-color .15s ease;
+  }
+  .card:hover{ transform: translateY(-3px); border-color:#3a4150; }
+  .card-image{
+    width:100%;
+    aspect-ratio: 16/9;
+    background: var(--panel-2);
+    object-fit: cover;
+    display:block;
+  }
+  .card-body{
+    padding: 14px 14px 16px;
+    display:flex;
+    flex-direction: column;
+    gap: 8px;
+    flex:1;
+  }
+  .card-top{
+    display:flex;
+    justify-content: space-between;
+    align-items:flex-start;
+    gap: 10px;
+  }
+  .card-title{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:700;
+    font-size: 15.5px;
+    line-height:1.25;
+    letter-spacing: -0.01em;
+  }
+  .score-chip{
+    font-family:'JetBrains Mono', monospace;
+    font-weight:700;
+    font-size: 13px;
+    padding: 3px 7px;
+    border-radius: 5px;
+    flex-shrink:0;
+    min-width: 34px;
+    text-align:center;
+  }
+  .score-high{ background: rgba(186,255,41,0.14); color: var(--signal); border:1px solid rgba(186,255,41,0.3);}
+  .score-mid{ background: rgba(255,176,32,0.14); color: var(--amber); border:1px solid rgba(255,176,32,0.3);}
+  .score-low{ background: rgba(255,95,95,0.12); color: var(--danger); border:1px solid rgba(255,95,95,0.3);}
+  .score-none{ background: var(--panel-2); color: var(--muted); border:1px solid var(--line); }
+
+  .card-meta{
+    display:flex;
+    flex-wrap:wrap;
+    gap: 5px;
+    font-size: 11.5px;
+    color: var(--muted);
+  }
+  .tag{
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    padding: 2px 8px;
+    border-radius: 100px;
+  }
+  .card-actions{
+    margin-top: auto;
+    display:flex;
+    gap: 8px;
+    padding-top: 6px;
+  }
+  .card-actions a{
+    flex:1;
+    text-align:center;
+    text-decoration: none;
+    font-size: 12.5px;
+    font-weight:600;
+    padding: 8px 6px;
+    border-radius: 7px;
+    font-family:'Inter', sans-serif;
+    border: 1px solid var(--line);
+    color: var(--text);
+    transition: all .15s ease;
+  }
+  .card-actions a.trailer{ background: var(--panel-2); }
+  .card-actions a.trailer:hover{ border-color: var(--signal); color: var(--signal); }
+  .card-actions a.walkthrough:hover{ border-color: var(--amber); color: var(--amber); }
+
+  /* ---------- States ---------- */
+  .state-msg{
+    text-align:center;
+    padding: 70px 20px;
+    color: var(--muted);
+    font-family:'JetBrains Mono', monospace;
+    font-size: 13.5px;
+  }
+  .state-msg .big{
+    font-family:'Space Grotesk', sans-serif;
+    font-size: 18px;
+    color: var(--text);
+    margin-bottom: 8px;
+    font-weight: 700;
+  }
+  .spinner{
+    width:26px; height:26px;
+    border: 3px solid var(--line);
+    border-top-color: var(--signal);
+    border-radius:50%;
+    margin: 0 auto 16px;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin{ to{ transform: rotate(360deg); } }
+
+  .load-more-wrap{
+    display:flex;
+    justify-content:center;
+    margin-top: 30px;
+  }
+  .load-more{
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--text);
+    padding: 12px 26px;
+    border-radius: var(--radius);
+    font-family:'JetBrains Mono', monospace;
+    font-size: 13px;
+    cursor:pointer;
+    transition: all .15s ease;
+  }
+  .load-more:hover{ border-color: var(--signal); color: var(--signal); }
+  .load-more:disabled{ opacity:0.5; cursor:default; }
+
+  /* ---------- API key gate ---------- */
+  .key-gate{
+    max-width: 460px;
+    margin: 90px auto;
+    background: var(--panel);
+    border:1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 28px;
+  }
+  .key-gate h2{ font-family:'Space Grotesk',sans-serif; font-size:19px; margin:0 0 8px;}
+  .key-gate p{ color:var(--muted); font-size:13.5px; line-height:1.5; margin:0 0 16px;}
+  .key-gate a{ color: var(--signal); }
+  .key-gate input{
+    width:100%;
+    background: var(--panel-2);
+    border:1px solid var(--line);
+    color:var(--text);
+    padding: 12px 14px;
+    border-radius: 8px;
+    font-family:'JetBrains Mono', monospace;
+    font-size: 13px;
+    margin-bottom: 12px;
+    outline:none;
+  }
+  .key-gate button{
+    width:100%;
+    background: var(--signal);
+    color:#0c0f13;
+    border:none;
+    padding: 12px;
+    border-radius: 8px;
+    font-weight:700;
+    font-family:'Inter',sans-serif;
+    cursor:pointer;
+    font-size:14px;
+  }
+
+  @media (max-width: 640px){
+    header.hero{ padding: 32px 16px 22px; }
+    .filters, .results-bar, main{ padding-left:16px; padding-right:16px; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .card, .chip, .load-more, .card-actions a{ transition: none; }
+    .spinner{ animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="brand">
+    <span class="brand-mark">GV</span>
+    <span class="brand-name">GameVault</span>
+  </div>
+  <h1 class="title">Βρες το επόμενο <span>παιχνίδι</span> σου</h1>
+  <p class="subtitle">Αναζήτηση, βαθμολογίες, στιγμιότυπα, trailers και walkthroughs — όλα σε ένα μέρος.</p>
+
+  <div class="search-row">
+    <div class="search-box">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="searchInput" type="text" placeholder="Αναζήτηση τίτλου (π.χ. Elden Ring, Zelda...)">
+    </div>
+    <select id="yearSelect" class="year-select"></select>
+  </div>
+</header>
+
+<div class="filters">
+  <div class="filter-group">
+    <span class="filter-label">Genre</span>
+    <div class="chip-row" id="genreRow"><span class="chip active" data-genre="">Όλα</span></div>
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">Platform</span>
+    <div class="chip-row" id="platformRow"><span class="chip active" data-platform="">Όλα</span></div>
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">Rating</span>
+    <div class="chip-row" id="ratingRow">
+      <span class="chip active" data-rating="0">Όλα</span>
+      <span class="chip" data-rating="3">3.0+</span>
+      <span class="chip" data-rating="4">4.0+</span>
+      <span class="chip" data-rating="4.5">4.5+</span>
+    </div>
+  </div>
+</div>
+
+<div class="results-bar">
+  <span id="resultsCount">—</span>
+  <span id="sortLabel">ταξινόμηση: δημοφιλέστερα</span>
+</div>
+
+<main>
+  <div id="grid" class="grid"></div>
+  <div id="stateMsg"></div>
+  <div class="load-more-wrap" id="loadMoreWrap" style="display:none;">
+    <button class="load-more" id="loadMoreBtn">Περισσότερα παιχνίδια</button>
+  </div>
+</main>
+
+<script>
+(function(){
+  const RAWG_KEY_STORAGE = "gamevault_rawg_key";
+  let API_KEY = localStorage.getItem(RAWG_KEY_STORAGE) || "";
+
+  // ---- Key gate (μόνο αν δεν υπάρχει key αποθηκευμένο) ----
+  if(!API_KEY){
+    renderKeyGate();
+  } else {
+    boot();
+  }
+
+  function renderKeyGate(){
+    document.querySelector("header.hero").style.display = "none";
+    document.querySelector(".filters").style.display = "none";
+    document.querySelector(".results-bar").style.display = "none";
+    const main = document.querySelector("main");
+    main.innerHTML = `
+      <div class="key-gate">
+        <h2>Σύνδεση με RAWG API</h2>
+        <p>Χρειάζεται δωρεάν API key από το RAWG για να φορτωθούν τα παιχνίδια.
+        Πάρε το εδώ: <a href="https://rawg.io/apidocs" target="_blank" rel="noopener">rawg.io/apidocs</a> (login → API Key).</p>
+        <input id="keyInput" type="text" placeholder="Επικόλλησε το API key εδώ...">
+        <button id="keySubmit">Αποθήκευση & Έναρξη</button>
+      </div>
+    `;
+    document.getElementById("keySubmit").addEventListener("click", () => {
+      const val = document.getElementById("keyInput").value.trim();
+      if(!val) return;
+      localStorage.setItem(RAWG_KEY_STORAGE, val);
+      location.reload();
+    });
+  }
+
+  function boot(){
+    const grid = document.getElementById("grid");
+    const stateMsg = document.getElementById("stateMsg");
+    const resultsCount = document.getElementById("resultsCount");
+    const searchInput = document.getElementById("searchInput");
+    const yearSelect = document.getElementById("yearSelect");
+    const genreRow = document.getElementById("genreRow");
+    const platformRow = document.getElementById("platformRow");
+    const ratingRow = document.getElementById("ratingRow");
+    const loadMoreWrap = document.getElementById("loadMoreWrap");
+    const loadMoreBtn = document.getElementById("loadMoreBtn");
+
+    let state = {
+      search: "",
+      genre: "",
+      platform: "",
+      rating: 0,
+      year: "",
+      page: 1,
+      totalCount: 0,
+      loading: false
+    };
+    let debounceTimer = null;
+
+    // Έτη: τρέχον έτος πίσω μέχρι 1995
+    const currentYear = new Date().getFullYear();
+    let yearOptions = `<option value="">Όλα τα έτη</option>`;
+    for(let y = currentYear + 1; y >= 1995; y--){
+      yearOptions += `<option value="${y}">${y}</option>`;
+    }
+    yearSelect.innerHTML = yearOptions;
+
+    // Φόρτωση genres & platforms για τα φίλτρα
+    fetchGenres();
+    fetchPlatforms();
+    fetchGames(true);
+
+    searchInput.addEventListener("input", () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        state.search = searchInput.value.trim();
+        state.page = 1;
+        fetchGames(true);
+      }, 450);
+    });
+
+    yearSelect.addEventListener("change", () => {
+      state.year = yearSelect.value;
+      state.page = 1;
+      fetchGames(true);
+    });
+
+    ratingRow.addEventListener("click", (e) => {
+      const chip = e.target.closest(".chip");
+      if(!chip) return;
+      [...ratingRow.children].forEach(c => c.classList.remove("active"));
+      chip.classList.add("active");
+      state.rating = parseFloat(chip.dataset.rating);
+      state.page = 1;
+      fetchGames(true);
+    });
+
+    loadMoreBtn.addEventListener("click", () => {
+      state.page += 1;
+      fetchGames(false);
+    });
+
+    async function fetchGenres(){
+      try{
+        const res = await fetch(`https://api.rawg.io/api/genres?key=${API_KEY}`);
+        const data = await res.json();
+        let html = `<span class="chip active" data-genre="">Όλα</span>`;
+        (data.results || []).slice(0, 12).forEach(g => {
+          html += `<span class="chip" data-genre="${g.slug}">${g.name}</span>`;
+        });
+        genreRow.innerHTML = html;
+        genreRow.addEventListener("click", (e) => {
+          const chip = e.target.closest(".chip");
+          if(!chip) return;
+          [...genreRow.children].forEach(c => c.classList.remove("active"));
+          chip.classList.add("active");
+          state.genre = chip.dataset.genre;
+          state.page = 1;
+          fetchGames(true);
+        });
+      }catch(err){ console.error("Σφάλμα genres:", err); }
+    }
+
+    async function fetchPlatforms(){
+      try{
+        const res = await fetch(`https://api.rawg.io/api/platforms/lists/parents?key=${API_KEY}`);
+        const data = await res.json();
+        let html = `<span class="chip active" data-platform="">Όλα</span>`;
+        (data.results || []).slice(0, 8).forEach(p => {
+          html += `<span class="chip" data-platform="${p.id}">${p.name}</span>`;
+        });
+        platformRow.innerHTML = html;
+        platformRow.addEventListener("click", (e) => {
+          const chip = e.target.closest(".chip");
+          if(!chip) return;
+          [...platformRow.children].forEach(c => c.classList.remove("active"));
+          chip.classList.add("active");
+          state.platform = chip.dataset.platform;
+          state.page = 1;
+          fetchGames(true);
+        });
+      }catch(err){ console.error("Σφάλμα platforms:", err); }
+    }
+
+    async function fetchGames(reset){
+      if(state.loading) return;
+      state.loading = true;
+
+      if(reset){
+        grid.innerHTML = "";
+        stateMsg.innerHTML = `<div class="state-msg"><div class="spinner"></div>Φόρτωση παιχνιδιών...</div>`;
+        loadMoreWrap.style.display = "none";
+      } else {
+        loadMoreBtn.disabled = true;
+        loadMoreBtn.textContent = "Φόρτωση...";
+      }
+
+      try{
+        const params = new URLSearchParams({
+          key: API_KEY,
+          page: state.page,
+          page_size: 24,
+          ordering: state.search ? "-added" : "-rating"
+        });
+        if(state.search) params.set("search", state.search);
+        if(state.genre) params.set("genres", state.genre);
+        if(state.platform) params.set("parent_platforms", state.platform);
+        if(state.year) params.set("dates", `${state.year}-01-01,${state.year}-12-31`);
+        if(state.rating > 0) params.set("metacritic", ratingToMetacriticRange(state.rating));
+
+        const res = await fetch(`https://api.rawg.io/api/games?${params.toString()}`);
+        if(!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
+
+        state.totalCount = data.count || 0;
+        resultsCount.textContent = `${state.totalCount.toLocaleString("el-GR")} παιχνίδια`;
+
+        if(reset) stateMsg.innerHTML = "";
+
+        if((data.results || []).length === 0 && reset){
+          stateMsg.innerHTML = `<div class="state-msg"><div class="big">Δεν βρέθηκαν παιχνίδια</div>Δοκίμασε διαφορετικό όρο αναζήτησης ή φίλτρα.</div>`;
+        } else {
+          data.results.forEach(game => grid.appendChild(renderCard(game)));
+        }
+
+        loadMoreWrap.style.display = data.next ? "flex" : "none";
+      }catch(err){
+        console.error("Σφάλμα φόρτωσης παιχνιδιών:", err);
+        if(reset){
+          stateMsg.innerHTML = `<div class="state-msg"><div class="big">Πρόβλημα σύνδεσης</div>Έλεγξε το API key ή τη σύνδεσή σου και δοκίμασε ξανά.</div>`;
+        }
+      } finally {
+        state.loading = false;
+        loadMoreBtn.disabled = false;
+        loadMoreBtn.textContent = "Περισσότερα παιχνίδια";
+      }
+    }
+
+    function ratingToMetacriticRange(r){
+      if(r >= 4.5) return "90,100";
+      if(r >= 4) return "80,100";
+      if(r >= 3) return "60,100";
+      return "0,100";
+    }
+
+    function scoreClass(score){
+      if(score === null || score === undefined) return "score-none";
+      if(score >= 80) return "score-high";
+      if(score >= 60) return "score-mid";
+      return "score-low";
+    }
+
+    function renderCard(game){
+      const card = document.createElement("div");
+      card.className = "card";
+      const img = game.background_image || "";
+      const score = game.metacritic;
+      const year = game.released ? game.released.slice(0,4) : "—";
+      const platforms = (game.platforms || []).slice(0,3).map(p => p.platform.name);
+      const genres = (game.genres || []).slice(0,2).map(g => g.name);
+      const encodedName = encodeURIComponent(game.name);
+
+      card.innerHTML = `
+        ${img ? `<img class="card-image" loading="lazy" src="${img}" alt="${escapeHtml(game.name)}">` : `<div class="card-image"></div>`}
+        <div class="card-body">
+          <div class="card-top">
+            <div class="card-title">${escapeHtml(game.name)}</div>
+            <div class="score-chip ${scoreClass(score)}">${score ?? "—"}</div>
+          </div>
+          <div class="card-meta">
+            <span class="tag">${year}</span>
+            ${genres.map(g => `<span class="tag">${escapeHtml(g)}</span>`).join("")}
+            ${platforms.map(p => `<span class="tag">${escapeHtml(p)}</span>`).join("")}
+          </div>
+          <div class="card-actions">
+            <a class="trailer" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query=${encodedName}+trailer">Trailer ↗</a>
+            <a class="walkthrough" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query=${encodedName}+walkthrough">Walkthrough ↗</a>
+          </div>
+        </div>
+      `;
+      return card;
+    }
+
+    function escapeHtml(str){
+      const div = document.createElement("div");
+      div.textContent = str || "";
+      return div.innerHTML;
+    }
+  }
+})();
+</script>
+
+</body>
+</html>
