@@ -98,6 +98,11 @@
   }
   .search-clear:hover{ border-color: var(--neon-pink); color: var(--neon-pink); }
   .search-clear.visible{ display:flex; }
+  select.sort-select{
+    background: rgba(21,15,40,0.85); border: 1px solid var(--line-bright); color: var(--neon-cyan);
+    border-radius: 4px; padding: 5px 12px; font-size: 12.5px; font-family: 'Share Tech Mono', monospace;
+    letter-spacing: 0.5px; text-transform: uppercase; cursor:pointer;
+  }
   select.year-select{
     background: rgba(21,15,40,0.85); border: 1px solid var(--line-bright); color: var(--text);
     border-radius: 4px; padding: 0 16px; font-size: 14px; font-family: 'Rajdhani', sans-serif; font-weight: 500; cursor:pointer;
@@ -204,13 +209,13 @@
     box-shadow: 0 0 40px rgba(168,85,247,0.25);
   }
   .modal-close{
-    position:absolute; top:14px; right:14px; width:34px; height:34px; border-radius:50%;
-    background: rgba(10,7,20,0.7); border:1px solid var(--line-bright); color: var(--text);
-    cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center; z-index:2;
+    position:fixed; top:20px; right:24px; width:38px; height:38px; border-radius:50%;
+    background: rgba(10,7,20,0.85); border:1px solid var(--line-bright); color: var(--text);
+    cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center; z-index:55;
   }
   .modal-close:hover{ border-color: var(--neon-pink); color: var(--neon-pink); }
-  .modal-header{ position:relative; }
-  .modal-cover{ width:100%; max-height: 320px; object-fit: cover; object-position: center 20%; display:block; }
+  .modal-header{ position:relative; background: #05040a; display:flex; align-items:center; justify-content:center; }
+  .modal-cover{ width:100%; max-height: 420px; object-fit: contain; display:block; }
   .modal-body{ padding: 22px 26px 28px; }
   .modal-title{ font-family:'Orbitron', sans-serif; font-weight:800; font-size:22px; margin:0 0 10px; }
   .modal-meta{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:16px; }
@@ -285,7 +290,11 @@
 
 <div class="results-bar">
   <span id="resultsCount">—</span>
-  <span id="sortLabel">SORT: ΝΕΟΤΕΡΑ ▾</span>
+  <select id="sortSelect" class="sort-select">
+    <option value="popular">SORT: ΔΗΜΟΦΙΛΗ</option>
+    <option value="rating">SORT: RATING</option>
+    <option value="newest">SORT: ΝΕΟΤΕΡΑ</option>
+  </select>
 </div>
 
 <main>
@@ -330,7 +339,7 @@
   lightboxClose.addEventListener("click", () => lightbox.classList.remove("open"));
   lightbox.addEventListener("click", (e) => { if(e.target === lightbox) lightbox.classList.remove("open"); });
 
-  let state = { search:"", genre:"", platform:"", rating:0, year:"", offset:0, loading:false };
+  let state = { search:"", genre:"", platform:"", rating:0, year:"", sort:"popular", offset:0, loading:false };
   let debounceTimer = null;
   const PAGE_SIZE = 24;
 
@@ -458,6 +467,13 @@
     fetchGames(true);
   });
 
+  const sortSelect = document.getElementById("sortSelect");
+  sortSelect.addEventListener("change", () => {
+    state.sort = sortSelect.value;
+    state.offset = 0;
+    fetchGames(true);
+  });
+
   loadMoreBtn.addEventListener("click", () => {
     state.offset += PAGE_SIZE;
     fetchGames(false);
@@ -515,6 +531,8 @@
     if(state.search) clauses.push(`name ~ *"${state.search.replace(/"/g,'')}"*`);
     if(!state.year) clauses.push(`first_release_date <= ${Math.floor(Date.now()/1000)}`);
     clauses.push(`cover != null`);
+    if(!state.search && state.sort === "popular") clauses.push(`rating_count >= 10`);
+    if(!state.search && state.sort === "rating") clauses.push(`aggregated_rating_count >= 3`);
     return clauses.length ? `where ${clauses.join(" & ")};` : "";
   }
 
@@ -532,7 +550,12 @@
     }
 
     try{
-      const sortField = state.search ? "" : "sort first_release_date desc;";
+      const sortMap = {
+        popular: "sort rating_count desc;",
+        rating: "sort aggregated_rating desc;",
+        newest: "sort first_release_date desc;"
+      };
+      const sortField = state.search ? "" : sortMap[state.sort];
       const query = `fields name, cover.image_id, aggregated_rating, first_release_date, genres.name, platforms.name; ${buildWhere()} ${sortField} limit ${PAGE_SIZE}; offset ${state.offset};`;
       const data = await igdb("games", query);
 
