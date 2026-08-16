@@ -2,8 +2,17 @@
 <html lang="el">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>GameVault // Κατάλογος Παιχνιδιών</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="icon-16.png">
+<link rel="shortcut icon" href="favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
+<meta name="theme-color" content="#0a0714">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GameVault">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
@@ -198,6 +207,16 @@
     header.hero{ padding: 36px 16px 150px; }
     .filters{ margin-top: -115px; }
     .filters, .results-bar, main{ padding-left:16px; padding-right:16px; }
+    .search-row{ flex-direction: column; }
+    .search-row select.year-select{ width: 100%; height: 44px; }
+    .results-bar{ flex-direction: column; align-items:flex-start; gap:10px; }
+    .modal{ max-height: 94vh; }
+    .modal-body{ padding: 18px 16px 22px; }
+    .modal-title{ font-size: 19px; }
+    .lightbox-nav{ width:38px; height:38px; font-size:18px; }
+    .lightbox-prev{ left: 8px; }
+    .lightbox-next{ right: 8px; }
+    .card-actions{ flex-direction: column; }
   }
   @media (prefers-reduced-motion: reduce){
     .card, .chip, .load-more, .card-actions a{ transition: none; }
@@ -256,6 +275,19 @@
     cursor:pointer; font-size:20px; display:flex; align-items:center; justify-content:center;
   }
   .lightbox-close:hover{ border-color: var(--neon-pink); color: var(--neon-pink); }
+  .lightbox-nav{
+    position:absolute; top:50%; transform:translateY(-50%); width:46px; height:46px; border-radius:50%;
+    background: rgba(10,7,20,0.8); border:1px solid var(--line-bright); color: var(--text);
+    cursor:pointer; font-size:22px; display:flex; align-items:center; justify-content:center;
+  }
+  .lightbox-nav:hover{ border-color: var(--neon-cyan); color: var(--neon-cyan); }
+  .lightbox-prev{ left: 16px; }
+  .lightbox-next{ right: 16px; }
+  .lightbox-counter{
+    position:absolute; bottom:18px; left:50%; transform:translateX(-50%);
+    font-family:'Share Tech Mono',monospace; font-size:12px; color: var(--muted);
+    background: rgba(10,7,20,0.7); padding:4px 12px; border-radius:100px; border:1px solid var(--line);
+  }
 </style>
 </head>
 <body>
@@ -324,7 +356,10 @@
 
 <div class="lightbox" id="lightbox">
   <button class="lightbox-close" id="lightboxClose">✕</button>
+  <button class="lightbox-nav lightbox-prev" id="lightboxPrev" aria-label="Προηγούμενο στιγμιότυπο">‹</button>
+  <button class="lightbox-nav lightbox-next" id="lightboxNext" aria-label="Επόμενο στιγμιότυπο">›</button>
   <img id="lightboxImg" src="" alt="Στιγμιότυπο σε μεγέθυνση">
+  <span class="lightbox-counter" id="lightboxCounter"></span>
 </div>
 
 <script>
@@ -348,8 +383,22 @@
   const lightbox = document.getElementById("lightbox");
   const lightboxImg = document.getElementById("lightboxImg");
   const lightboxClose = document.getElementById("lightboxClose");
+  const lightboxPrev = document.getElementById("lightboxPrev");
+  const lightboxNext = document.getElementById("lightboxNext");
+  const lightboxCounter = document.getElementById("lightboxCounter");
+  let lightboxShots = [];
+  let lightboxIndex = 0;
+
+  function showLightbox(index){
+    lightboxIndex = (index + lightboxShots.length) % lightboxShots.length;
+    lightboxImg.src = lightboxShots[lightboxIndex].replace("t_screenshot_big", "t_1080p");
+    lightboxCounter.textContent = `${lightboxIndex + 1} / ${lightboxShots.length}`;
+    lightbox.classList.add("open");
+  }
 
   lightboxClose.addEventListener("click", () => lightbox.classList.remove("open"));
+  lightboxPrev.addEventListener("click", () => showLightbox(lightboxIndex - 1));
+  lightboxNext.addEventListener("click", () => showLightbox(lightboxIndex + 1));
   lightbox.addEventListener("click", (e) => { if(e.target === lightbox) lightbox.classList.remove("open"); });
 
   let state = { search:"", genre:"", platform:"", rating:0, year:"", sort:"popular", offset:0, loading:false };
@@ -398,9 +447,12 @@
     if(e.target === modalBackdrop) closeModal();
   });
   document.addEventListener("keydown", (e) => {
-    if(e.key === "Escape"){
-      if(lightbox.classList.contains("open")) lightbox.classList.remove("open");
-      else closeModal();
+    if(lightbox.classList.contains("open")){
+      if(e.key === "Escape") lightbox.classList.remove("open");
+      if(e.key === "ArrowLeft") showLightbox(lightboxIndex - 1);
+      if(e.key === "ArrowRight") showLightbox(lightboxIndex + 1);
+    } else if(e.key === "Escape"){
+      closeModal();
     }
   });
   function closeModal(){
@@ -456,11 +508,9 @@
       </div>
     `;
     document.getElementById("modalCloseBtn").addEventListener("click", closeModal);
-    modalContent.querySelectorAll(".modal-shots img").forEach(img => {
-      img.addEventListener("click", () => {
-        lightboxImg.src = img.dataset.full.replace("t_screenshot_big", "t_1080p");
-        lightbox.classList.add("open");
-      });
+    lightboxShots = shots;
+    modalContent.querySelectorAll(".modal-shots img").forEach((img, idx) => {
+      img.addEventListener("click", () => showLightbox(idx));
     });
   }
 
