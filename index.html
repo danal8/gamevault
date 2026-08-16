@@ -119,7 +119,10 @@
 
   .filters{ max-width: 1180px; margin: -95px auto 0; padding: 0 24px; display:flex; gap: 24px; flex-wrap: wrap; position: relative; z-index: 3; }
   .filter-group{ display:flex; flex-direction: column; gap: 9px; }
-  .filter-label{ font-family:'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--neon-cyan); }
+  .filter-label{ font-family:'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--neon-cyan); cursor:pointer; display:flex; align-items:center; gap:5px; user-select:none; }
+  .filter-label .chevron{ display:inline-block; transition: transform .15s ease; font-size:10px; }
+  .filter-label.expanded .chevron{ transform: rotate(180deg); }
+  .chip-row.collapsed .chip:not(:first-child){ display:none; }
   .chip-row{ display:flex; gap:7px; flex-wrap:wrap; }
   .chip{
     background: rgba(21,15,40,0.9); border: 1px solid var(--line); color: var(--muted);
@@ -332,16 +335,16 @@
 
 <div class="filters">
   <div class="filter-group">
-    <span class="filter-label">Genre</span>
-    <div class="chip-row" id="genreRow"><span class="chip active" data-genre="">Όλα</span></div>
+    <span class="filter-label" data-target="genreRow">Genre <span class="chevron">▾</span></span>
+    <div class="chip-row collapsed" id="genreRow"><span class="chip active" data-genre="">Όλα</span></div>
   </div>
   <div class="filter-group">
-    <span class="filter-label">Platform</span>
-    <div class="chip-row" id="platformRow"><span class="chip active" data-platform="">Όλα</span></div>
+    <span class="filter-label" data-target="platformRow">Platform <span class="chevron">▾</span></span>
+    <div class="chip-row collapsed" id="platformRow"><span class="chip active" data-platform="">Όλα</span></div>
   </div>
   <div class="filter-group">
-    <span class="filter-label">Rating</span>
-    <div class="chip-row" id="ratingRow">
+    <span class="filter-label" data-target="ratingRow">Rating <span class="chevron">▾</span></span>
+    <div class="chip-row collapsed" id="ratingRow">
       <span class="chip active" data-rating="0">Όλα</span>
       <span class="chip" data-rating="60">60+</span>
       <span class="chip" data-rating="75">75+</span>
@@ -555,6 +558,14 @@
     fetchGames(true);
   });
 
+  document.querySelectorAll(".filter-label").forEach(label => {
+    label.addEventListener("click", () => {
+      const row = document.getElementById(label.dataset.target);
+      row.classList.toggle("collapsed");
+      label.classList.toggle("expanded");
+    });
+  });
+
   const clearFiltersBtn = document.getElementById("clearFiltersBtn");
   clearFiltersBtn.addEventListener("click", () => {
     state.genre = ""; state.platform = ""; state.rating = 0; state.year = ""; state.sort = "popular"; state.offset = 0;
@@ -628,7 +639,7 @@
     }
     if(!state.year) clauses.push(`first_release_date <= ${Math.floor(Date.now()/1000)}`);
     clauses.push(`cover != null`);
-    if(!state.search && state.sort === "popular") clauses.push(`rating_count >= 10`);
+    if(!state.search && state.sort === "popular") clauses.push(`total_rating_count >= 10`);
     if(!state.search && state.sort === "rating") clauses.push(`aggregated_rating_count >= 3`);
     return clauses.length ? `where ${clauses.join(" & ")};` : "";
   }
@@ -648,11 +659,11 @@
 
     try{
       const sortMap = {
-        popular: "sort rating_count desc;",
+        popular: "sort total_rating_count desc;",
         rating: "sort aggregated_rating desc;",
         newest: "sort first_release_date desc;"
       };
-      const sortField = state.search ? "sort rating_count desc;" : sortMap[state.sort];
+      const sortField = state.search ? "sort total_rating_count desc;" : sortMap[state.sort];
       const query = `fields name, cover.image_id, aggregated_rating, first_release_date, genres.name, platforms.name; ${buildWhere()} ${sortField} limit ${PAGE_SIZE}; offset ${state.offset};`;
       const data = await igdb("games", query);
 
