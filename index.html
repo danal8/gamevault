@@ -204,19 +204,35 @@
   .load-more:disabled{ opacity:0.5; cursor:default; }
 
   @media (max-width: 640px){
-    header.hero{ padding: 36px 16px 150px; }
-    .filters{ margin-top: -115px; }
+    header.hero{ padding: 32px 16px 40px; }
+    .horizon::before, .horizon::after{ opacity: 0.3; }
+    .filters{ margin-top: 0; flex-direction: column; gap: 14px; }
     .filters, .results-bar, main{ padding-left:16px; padding-right:16px; }
     .search-row{ flex-direction: column; }
     .search-row select.year-select{ width: 100%; height: 44px; }
     .results-bar{ flex-direction: column; align-items:flex-start; gap:10px; }
+
+    .chip-row{ flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; scrollbar-width: none; }
+    .chip-row::-webkit-scrollbar{ display: none; }
+    .chip{ flex-shrink: 0; }
+
+    .grid{ grid-template-columns: 1fr; gap: 12px; }
+    .card{ flex-direction: row; }
+    .card-image-wrap{ width: 96px; flex-shrink: 0; aspect-ratio: auto; align-self: stretch; }
+    .card-body{ padding: 10px 12px; gap: 6px; min-width: 0; }
+    .card-title{ font-size: 14px; }
+    .card-meta{ gap: 4px; }
+    .tag{ font-size: 10.5px; padding: 1px 7px; }
+    .card-actions{ flex-direction: row; padding-top: 4px; }
+    .card-actions a{ font-size: 11px; padding: 7px 4px; }
+    .score-chip{ font-size: 12px; padding: 2px 6px; min-width: 30px; }
+
     .modal{ max-height: 94vh; }
     .modal-body{ padding: 18px 16px 22px; }
     .modal-title{ font-size: 19px; }
     .lightbox-nav{ width:38px; height:38px; font-size:18px; }
     .lightbox-prev{ left: 8px; }
     .lightbox-next{ right: 8px; }
-    .card-actions{ flex-direction: column; }
   }
   @media (prefers-reduced-motion: reduce){
     .card, .chip, .load-more, .card-actions a{ transition: none; }
