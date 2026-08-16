@@ -117,12 +117,25 @@
     border-radius: 4px; padding: 0 16px; font-size: 14px; font-family: 'Rajdhani', sans-serif; font-weight: 500; cursor:pointer;
   }
 
-  .filters{ max-width: 1180px; margin: -95px auto 0; padding: 0 24px; display:flex; gap: 24px; flex-wrap: wrap; position: relative; z-index: 3; }
-  .filter-group{ display:flex; flex-direction: column; gap: 9px; }
-  .filter-label{ font-family:'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--neon-cyan); cursor:pointer; display:flex; align-items:center; gap:5px; user-select:none; }
+  .filters{ max-width: 1180px; margin: -95px auto 0; padding: 0 24px; display:flex; gap: 10px; flex-wrap: wrap; align-items:center; position: relative; z-index: 3; }
+  .filter-group{ display:flex; align-items:center; gap: 8px; }
+  .filter-label{
+    font-family:'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--neon-cyan); cursor:pointer; display:flex; align-items:center; gap:5px; user-select:none;
+    padding: 9px 12px; border-radius: 100px; border: 1px solid var(--line);
+    background: rgba(21,15,40,0.7); transition: border-color .15s ease;
+  }
+  .filter-label:hover{ border-color: var(--neon-cyan); }
   .filter-label .chevron{ display:inline-block; transition: transform .15s ease; font-size:10px; }
   .filter-label.expanded .chevron{ transform: rotate(180deg); }
   .chip-row.collapsed .chip:not(:first-child){ display:none; }
+  .clear-filters-btn{
+    background: transparent; border: 1px solid var(--neon-red); color: var(--neon-red);
+    padding: 9px 16px; border-radius: 100px; font-size: 12px; font-weight:700;
+    font-family:'Share Tech Mono', monospace; letter-spacing:0.5px; text-transform:uppercase;
+    cursor:pointer; transition: all .15s ease;
+  }
+  .clear-filters-btn:hover{ background: rgba(255,56,96,0.12); box-shadow: 0 0 10px rgba(255,56,96,0.3); }
   .chip-row{ display:flex; gap:7px; flex-wrap:wrap; }
   .chip{
     background: rgba(21,15,40,0.9); border: 1px solid var(--line); color: var(--muted);
@@ -134,14 +147,6 @@
     background: var(--neon-pink); border-color: var(--neon-pink); color: #1a0510;
     font-weight: 700; box-shadow: 0 0 12px rgba(255,46,151,0.55);
   }
-  .clear-filters-btn{
-    align-self:flex-end;
-    background: transparent; border: 1px solid var(--neon-red); color: var(--neon-red);
-    padding: 6px 14px; border-radius: 100px; font-size: 12px; font-weight:700;
-    font-family:'Share Tech Mono', monospace; letter-spacing:0.5px; text-transform:uppercase;
-    cursor:pointer; transition: all .15s ease;
-  }
-  .clear-filters-btn:hover{ background: rgba(255,56,96,0.12); box-shadow: 0 0 10px rgba(255,56,96,0.3); }
 
   .results-bar{
     max-width: 1180px; margin: 30px auto 0; padding: 0 24px;
@@ -209,8 +214,8 @@
   @media (max-width: 640px){
     header.hero{ padding: 32px 16px 40px; }
     .horizon::before, .horizon::after{ opacity: 0.3; }
-    .filters{ margin-top: 0; flex-direction: column; gap: 14px; width: 100%; }
-    .filter-group{ min-width: 0; width: 100%; }
+    .filters{ margin-top: 0; gap: 8px; width: 100%; }
+    .filter-group{ min-width: 0; }
     .filters, .results-bar, main{ padding-left:16px; padding-right:16px; box-sizing:border-box; width:100%; }
     .search-row{ flex-direction: column; }
     .search-row .search-box{ flex: none; }
