@@ -117,17 +117,17 @@
     border-radius: 4px; padding: 0 16px; font-size: 14px; font-family: 'Rajdhani', sans-serif; font-weight: 500; cursor:pointer;
   }
 
-  .filters{ max-width: 1180px; margin: -95px auto 0; padding: 0 24px; display:flex; gap: 10px; flex-wrap: wrap; align-items:center; position: relative; z-index: 20; }
+  .filters{ max-width: 1180px; margin: -95px auto 0; padding: 0 24px; display:flex; gap: 8px; flex-wrap: wrap; align-items:center; position: relative; z-index: 20; }
   .filter-group{ position: relative; }
   select.filter-select{
     background: rgba(21,15,40,0.85); border: 1px solid var(--line-bright); color: var(--text);
-    border-radius: 100px; padding: 9px 16px; font-size: 13px; font-family: 'Rajdhani', sans-serif;
-    font-weight: 600; cursor:pointer; max-width: 200px;
+    border-radius: 100px; padding: 7px 14px; font-size: 12.5px; font-family: 'Rajdhani', sans-serif;
+    font-weight: 600; cursor:pointer; max-width: 170px;
   }
   select.filter-select:focus{ outline:none; border-color: var(--neon-cyan); }
   .clear-filters-btn{
     background: transparent; border: 1px solid var(--neon-red); color: var(--neon-red);
-    padding: 9px 16px; border-radius: 100px; font-size: 12px; font-weight:700;
+    padding: 7px 14px; border-radius: 100px; font-size: 11px; font-weight:700;
     font-family:'Share Tech Mono', monospace; letter-spacing:0.5px; text-transform:uppercase;
     cursor:pointer; transition: all .15s ease;
   }
@@ -152,7 +152,7 @@
   }
 
   .results-bar{
-    max-width: 1180px; margin: 30px auto 0; padding: 0 24px;
+    max-width: 1180px; margin: 18px auto 0; padding: 0 24px;
     display:flex; justify-content: space-between; align-items:center;
     color: var(--muted); font-size: 13px; font-family: 'Share Tech Mono', monospace; letter-spacing: 0.5px;
   }
@@ -223,7 +223,7 @@
     .search-row{ flex-direction: column; }
     .search-row .search-box{ flex: none; }
     .search-row select.year-select{ width: 100%; height: 44px; flex: none; }
-    .results-bar{ flex-direction: column; align-items:flex-start; gap:10px; }
+    .results-bar{ flex-direction: row; justify-content:space-between; align-items:center; gap:8px; margin-top:12px; }
 
     .chip-row{ flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; scrollbar-width: none; width: 100%; max-width: 100%; }
     .chip-row::-webkit-scrollbar{ display: none; }
@@ -500,10 +500,19 @@
   function closeModal(){
     modalBackdrop.classList.remove("open");
     modalContent.innerHTML = "";
+    if(history.state && history.state.gvModal) history.back();
   }
+
+  window.addEventListener("popstate", () => {
+    if(modalBackdrop.classList.contains("open")){
+      modalBackdrop.classList.remove("open");
+      modalContent.innerHTML = "";
+    }
+  });
 
   async function openGameDetail(gameId, gameName){
     modalBackdrop.classList.add("open");
+    history.pushState({ gvModal: true }, "", "#game-" + gameId);
     modalContent.innerHTML = `<div class="modal-topbar"><button class="modal-close" id="modalCloseBtn">✕</button></div><div class="modal-loading"><div class="spinner"></div>ΦΟΡΤΩΣΗ ΛΕΠΤΟΜΕΡΕΙΩΝ...</div>`;
     document.getElementById("modalCloseBtn").addEventListener("click", closeModal);
     try{
