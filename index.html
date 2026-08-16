@@ -31,7 +31,7 @@
     --neon-red: #ff3860;
   }
   *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;}
+  html,body{margin:0;padding:0;overflow-x:hidden;max-width:100vw;}
   body{
     background:
       radial-gradient(ellipse 80% 50% at 50% -10%, rgba(168,85,247,0.25), transparent),
@@ -206,14 +206,15 @@
   @media (max-width: 640px){
     header.hero{ padding: 32px 16px 40px; }
     .horizon::before, .horizon::after{ opacity: 0.3; }
-    .filters{ margin-top: 0; flex-direction: column; gap: 14px; }
-    .filters, .results-bar, main{ padding-left:16px; padding-right:16px; }
+    .filters{ margin-top: 0; flex-direction: column; gap: 14px; width: 100%; }
+    .filter-group{ min-width: 0; width: 100%; }
+    .filters, .results-bar, main{ padding-left:16px; padding-right:16px; box-sizing:border-box; width:100%; }
     .search-row{ flex-direction: column; }
     .search-row .search-box{ flex: none; }
     .search-row select.year-select{ width: 100%; height: 44px; flex: none; }
     .results-bar{ flex-direction: column; align-items:flex-start; gap:10px; }
 
-    .chip-row{ flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; scrollbar-width: none; }
+    .chip-row{ flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; scrollbar-width: none; width: 100%; max-width: 100%; }
     .chip-row::-webkit-scrollbar{ display: none; }
     .chip{ flex-shrink: 0; }
 
