@@ -107,6 +107,8 @@
   }
   .search-clear:hover{ border-color: var(--neon-pink); color: var(--neon-pink); }
   .search-clear.visible{ display:flex; }
+  .sort-wrap{ display:flex; align-items:center; gap:7px; }
+  .sort-label-static{ font-family:'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 1px; color: var(--muted); }
   select.sort-select{
     background: rgba(21,15,40,0.85); border: 1px solid var(--line-bright); color: var(--neon-cyan);
     border-radius: 4px; padding: 5px 12px; font-size: 12.5px; font-family: 'Share Tech Mono', monospace;
@@ -360,17 +362,20 @@
       <span class="chip" data-rating="90">90+</span>
     </div>
   </div>
-  <button class="clear-filters-btn" id="clearFiltersBtn">Καθαρισμός φίλτρων</button>
+  <button class="clear-filters-btn" id="clearFiltersBtn">Καθαρισμός</button>
 </div>
 
 <div class="results-bar">
   <span id="resultsCount">—</span>
-  <select id="sortSelect" class="sort-select">
-    <option value="popular">SORT: ΔΗΜΟΦΙΛΗ</option>
-    <option value="rating">SORT: RATING</option>
-    <option value="newest">SORT: ΝΕΟΤΕΡΑ</option>
-    <option value="upcoming">SORT: ΠΡΟΣΕΧΩΣ</option>
-  </select>
+  <div class="sort-wrap">
+    <span class="sort-label-static">SORT:</span>
+    <select id="sortSelect" class="sort-select">
+      <option value="popular">Δημοφιλή</option>
+      <option value="rating">Rating</option>
+      <option value="newest">Νεότερα</option>
+      <option value="upcoming">Προσεχώς</option>
+    </select>
+  </div>
 </div>
 
 <main>
