@@ -440,6 +440,7 @@
   lightbox.addEventListener("click", (e) => { if(e.target === lightbox) lightbox.classList.remove("open"); });
 
   let state = { search:"", genre:"", platform:"", rating:0, year:"", sort:"popular", offset:0, loading:false };
+  let requestSeq = 0;
   let debounceTimer = null;
   const PAGE_SIZE = 24;
 
@@ -644,7 +645,7 @@
   }
 
   async function fetchGames(reset){
-    if(state.loading) return;
+    const myRequest = ++requestSeq;
     state.loading = true;
 
     if(reset){
@@ -667,6 +668,8 @@
       const searchClause = state.search ? `search "${state.search.replace(/"/g,'')}";` : "";
       const query = `${searchClause} fields name, cover.image_id, aggregated_rating, first_release_date, genres.name, platforms.name; ${buildWhere()} ${sortField} limit ${PAGE_SIZE}; offset ${state.offset};`;
       const data = await igdb("games", query);
+
+      if(myRequest !== requestSeq) return; // ξεπερασμένη απάντηση, αγνόησέ την
 
       if(reset) stateMsg.innerHTML = "";
       resultsCount.textContent = `${(data || []).length + state.offset}+ ΑΠΟΤΕΛΕΣΜΑΤΑ`;
