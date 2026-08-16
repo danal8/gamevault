@@ -122,6 +122,14 @@
     background: var(--neon-pink); border-color: var(--neon-pink); color: #1a0510;
     font-weight: 700; box-shadow: 0 0 12px rgba(255,46,151,0.55);
   }
+  .clear-filters-btn{
+    align-self:flex-end;
+    background: transparent; border: 1px solid var(--neon-red); color: var(--neon-red);
+    padding: 6px 14px; border-radius: 100px; font-size: 12px; font-weight:700;
+    font-family:'Share Tech Mono', monospace; letter-spacing:0.5px; text-transform:uppercase;
+    cursor:pointer; transition: all .15s ease;
+  }
+  .clear-filters-btn:hover{ background: rgba(255,56,96,0.12); box-shadow: 0 0 10px rgba(255,56,96,0.3); }
 
   .results-bar{
     max-width: 1180px; margin: 30px auto 0; padding: 0 24px;
@@ -200,18 +208,22 @@
   .modal-backdrop{
     position: fixed; inset:0; background: rgba(6,4,14,0.85);
     display:none; align-items:flex-start; justify-content:center;
-    padding: 40px 20px; overflow-y:auto; z-index: 50;
+    padding: 40px 20px; z-index: 50;
   }
   .modal-backdrop.open{ display:flex; }
   .modal{
     background: var(--panel); border:1px solid var(--line-bright); border-radius: 8px;
-    max-width: 760px; width:100%; overflow:hidden;
+    max-width: 760px; width:100%; max-height: 90vh; overflow-y:auto;
     box-shadow: 0 0 40px rgba(168,85,247,0.25);
   }
+  .modal-topbar{
+    position: sticky; top:0; z-index: 10; display:flex; justify-content:flex-end;
+    padding: 10px; background: linear-gradient(180deg, rgba(5,4,10,0.85), transparent);
+  }
   .modal-close{
-    position:fixed; top:20px; right:24px; width:38px; height:38px; border-radius:50%;
+    width:36px; height:36px; border-radius:50%;
     background: rgba(10,7,20,0.85); border:1px solid var(--line-bright); color: var(--text);
-    cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center; z-index:55;
+    cursor:pointer; font-size:17px; display:flex; align-items:center; justify-content:center;
   }
   .modal-close:hover{ border-color: var(--neon-pink); color: var(--neon-pink); }
   .modal-header{ position:relative; background: #05040a; display:flex; align-items:center; justify-content:center; }
@@ -286,6 +298,7 @@
       <span class="chip" data-rating="90">90+</span>
     </div>
   </div>
+  <button class="clear-filters-btn" id="clearFiltersBtn">Καθαρισμός φίλτρων</button>
 </div>
 
 <div class="results-bar">
@@ -359,7 +372,7 @@
   }
 
   fetchGenres();
-  fetchPlatforms();
+  renderPlatformChips();
   fetchGames(true);
 
   searchInput.addEventListener("input", () => {
@@ -397,17 +410,17 @@
 
   async function openGameDetail(gameId, gameName){
     modalBackdrop.classList.add("open");
-    modalContent.innerHTML = `<button class="modal-close" id="modalCloseBtn">✕</button><div class="modal-loading"><div class="spinner"></div>ΦΟΡΤΩΣΗ ΛΕΠΤΟΜΕΡΕΙΩΝ...</div>`;
+    modalContent.innerHTML = `<div class="modal-topbar"><button class="modal-close" id="modalCloseBtn">✕</button></div><div class="modal-loading"><div class="spinner"></div>ΦΟΡΤΩΣΗ ΛΕΠΤΟΜΕΡΕΙΩΝ...</div>`;
     document.getElementById("modalCloseBtn").addEventListener("click", closeModal);
     try{
       const query = `fields name, summary, cover.image_id, screenshots.image_id, aggregated_rating, first_release_date, genres.name, platforms.name; where id = ${gameId};`;
       const data = await igdb("games", query);
       const game = (data || [])[0];
-      if(!game){ modalContent.innerHTML = `<button class="modal-close" id="modalCloseBtn">✕</button><div class="modal-loading">Δεν βρέθηκαν λεπτομέρειες.</div>`; document.getElementById("modalCloseBtn").addEventListener("click", closeModal); return; }
+      if(!game){ modalContent.innerHTML = `<div class="modal-topbar"><button class="modal-close" id="modalCloseBtn">✕</button></div><div class="modal-loading">Δεν βρέθηκαν λεπτομέρειες.</div>`; document.getElementById("modalCloseBtn").addEventListener("click", closeModal); return; }
       renderModal(game);
     }catch(err){
       console.error("Σφάλμα λεπτομερειών:", err);
-      modalContent.innerHTML = `<button class="modal-close" id="modalCloseBtn">✕</button><div class="modal-loading">Πρόβλημα φόρτωσης. Δοκίμασε ξανά.</div>`;
+      modalContent.innerHTML = `<div class="modal-topbar"><button class="modal-close" id="modalCloseBtn">✕</button></div><div class="modal-loading">Πρόβλημα φόρτωσης. Δοκίμασε ξανά.</div>`;
       document.getElementById("modalCloseBtn").addEventListener("click", closeModal);
     }
   }
@@ -422,7 +435,7 @@
     const encodedName = encodeURIComponent(game.name);
 
     modalContent.innerHTML = `
-      <button class="modal-close" id="modalCloseBtn">✕</button>
+      <div class="modal-topbar"><button class="modal-close" id="modalCloseBtn">✕</button></div>
       <div class="modal-header">
         ${cover ? `<img class="modal-cover" src="${cover}" alt="${escapeHtml(game.name)}">` : ""}
       </div>
@@ -474,6 +487,17 @@
     fetchGames(true);
   });
 
+  const clearFiltersBtn = document.getElementById("clearFiltersBtn");
+  clearFiltersBtn.addEventListener("click", () => {
+    state.genre = ""; state.platform = ""; state.rating = 0; state.year = ""; state.sort = "popular"; state.offset = 0;
+    [...genreRow.children].forEach((c,i) => c.classList.toggle("active", i===0));
+    [...platformRow.children].forEach((c,i) => c.classList.toggle("active", i===0));
+    [...ratingRow.children].forEach((c,i) => c.classList.toggle("active", i===0));
+    yearSelect.value = "";
+    sortSelect.value = "popular";
+    fetchGames(true);
+  });
+
   loadMoreBtn.addEventListener("click", () => {
     state.offset += PAGE_SIZE;
     fetchGames(false);
@@ -497,25 +521,27 @@
     }catch(err){ console.error("Σφάλμα genres:", err); }
   }
 
-  async function fetchPlatforms(){
-    try{
-      const data = await igdb("platforms", "fields name; where category = (1,2,3,4,5,6); sort name asc; limit 30;");
-      let html = `<span class="chip active" data-platform="">Όλα</span>`;
-      const commonNames = ["PC (Microsoft Windows)","PlayStation 5","Xbox Series X|S","Nintendo Switch","PlayStation 4","Xbox One"];
-      const filtered = (data || []).filter(p => commonNames.includes(p.name));
-      const list = filtered.length ? filtered : (data || []).slice(0, 8);
-      list.forEach(p => { html += `<span class="chip" data-platform="${p.id}">${p.name}</span>`; });
-      platformRow.innerHTML = html;
-      platformRow.addEventListener("click", (e) => {
-        const chip = e.target.closest(".chip");
-        if(!chip) return;
-        [...platformRow.children].forEach(c => c.classList.remove("active"));
-        chip.classList.add("active");
-        state.platform = chip.dataset.platform;
-        state.offset = 0;
-        fetchGames(true);
-      });
-    }catch(err){ console.error("Σφάλμα platforms:", err); }
+  function renderPlatformChips(){
+    const commonPlatforms = [
+      { id: 6, name: "PC (Microsoft Windows)" },
+      { id: 167, name: "PlayStation 5" },
+      { id: 48, name: "PlayStation 4" },
+      { id: 169, name: "Xbox Series X|S" },
+      { id: 49, name: "Xbox One" },
+      { id: 130, name: "Nintendo Switch" }
+    ];
+    let html = `<span class="chip active" data-platform="">Όλα</span>`;
+    commonPlatforms.forEach(p => { html += `<span class="chip" data-platform="${p.id}">${p.name}</span>`; });
+    platformRow.innerHTML = html;
+    platformRow.addEventListener("click", (e) => {
+      const chip = e.target.closest(".chip");
+      if(!chip) return;
+      [...platformRow.children].forEach(c => c.classList.remove("active"));
+      chip.classList.add("active");
+      state.platform = chip.dataset.platform;
+      state.offset = 0;
+      fetchGames(true);
+    });
   }
 
   function buildWhere(){
@@ -528,7 +554,11 @@
       const end = Math.floor(new Date(`${state.year}-12-31`).getTime()/1000);
       clauses.push(`first_release_date >= ${start} & first_release_date <= ${end}`);
     }
-    if(state.search) clauses.push(`name ~ *"${state.search.replace(/"/g,'')}"*`);
+    if(state.search){
+      const words = state.search.replace(/"/g,'').trim().split(/\s+/);
+      words.forEach(w => clauses.push(`name ~ *"${w}"*`));
+      clauses.push(`category = (0,4,8,9,10)`);
+    }
     if(!state.year) clauses.push(`first_release_date <= ${Math.floor(Date.now()/1000)}`);
     clauses.push(`cover != null`);
     if(!state.search && state.sort === "popular") clauses.push(`rating_count >= 10`);
@@ -555,7 +585,7 @@
         rating: "sort aggregated_rating desc;",
         newest: "sort first_release_date desc;"
       };
-      const sortField = state.search ? "" : sortMap[state.sort];
+      const sortField = state.search ? "sort rating_count desc;" : sortMap[state.sort];
       const query = `fields name, cover.image_id, aggregated_rating, first_release_date, genres.name, platforms.name; ${buildWhere()} ${sortField} limit ${PAGE_SIZE}; offset ${state.offset};`;
       const data = await igdb("games", query);
 
