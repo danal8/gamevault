@@ -117,25 +117,21 @@
     border-radius: 4px; padding: 0 16px; font-size: 14px; font-family: 'Rajdhani', sans-serif; font-weight: 500; cursor:pointer;
   }
 
-  .filters{ max-width: 1180px; margin: -95px auto 0; padding: 0 24px; display:flex; gap: 10px; flex-wrap: wrap; align-items:flex-start; position: relative; z-index: 20; }
+  .filters{ max-width: 1180px; margin: -95px auto 0; padding: 0 24px; display:flex; gap: 10px; flex-wrap: wrap; align-items:center; position: relative; z-index: 20; }
   .filter-group{ position: relative; }
-  .filter-label{
-    font-family:'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;
-    color: var(--neon-cyan); cursor:pointer; display:flex; align-items:center; gap:6px; user-select:none;
-    padding: 9px 14px; border-radius: 100px; border: 1px solid var(--line);
-    background: rgba(21,15,40,0.85); transition: border-color .15s ease; white-space:nowrap;
+  select.filter-select{
+    background: rgba(21,15,40,0.85); border: 1px solid var(--line-bright); color: var(--text);
+    border-radius: 100px; padding: 9px 16px; font-size: 13px; font-family: 'Rajdhani', sans-serif;
+    font-weight: 600; cursor:pointer; max-width: 200px;
   }
-  .filter-label:hover{ border-color: var(--neon-cyan); }
-  .filter-label.has-value{ border-color: var(--neon-pink); color: var(--text); }
-  .filter-label .chevron{ display:inline-block; transition: transform .15s ease; font-size:10px; }
-  .filter-group.open .filter-label .chevron{ transform: rotate(180deg); }
-  .chip-row{
-    position:absolute; top: calc(100% + 8px); left:0; z-index: 30;
-    background: var(--panel); border: 1px solid var(--line-bright); border-radius: 8px;
-    padding: 12px; box-shadow: 0 12px 30px rgba(0,0,0,0.55);
-    display:none; flex-wrap: wrap; gap: 7px; width: max-content; max-width: 300px;
+  select.filter-select:focus{ outline:none; border-color: var(--neon-cyan); }
+  .clear-filters-btn{
+    background: transparent; border: 1px solid var(--neon-red); color: var(--neon-red);
+    padding: 9px 16px; border-radius: 100px; font-size: 12px; font-weight:700;
+    font-family:'Share Tech Mono', monospace; letter-spacing:0.5px; text-transform:uppercase;
+    cursor:pointer; transition: all .15s ease;
   }
-  .filter-group.open .chip-row{ display:flex; }
+  .clear-filters-btn:hover{ background: rgba(255,56,96,0.12); box-shadow: 0 0 10px rgba(255,56,96,0.3); }
   .clear-filters-btn{
     background: transparent; border: 1px solid var(--neon-red); color: var(--neon-red);
     padding: 9px 16px; border-radius: 100px; font-size: 12px; font-weight:700;
@@ -346,18 +342,19 @@
 </div>
 
 <div class="filters">
-  <div class="filter-group" id="genreGroup">
-    <span class="filter-label" data-target="genreRow" data-default="Genre">Genre <span class="chevron">▾</span></span>
-    <div class="chip-row" id="genreRow"><span class="chip active" data-genre="">Όλα</span></div>
-  </div>
-  <div class="filter-group" id="platformGroup">
-    <span class="filter-label" data-target="platformRow" data-default="Platform">Platform <span class="chevron">▾</span></span>
-    <div class="chip-row" id="platformRow"><span class="chip active" data-platform="">Όλα</span></div>
-  </div>
-  <div class="filter-group" id="ratingGroup">
-    <span class="filter-label" data-target="ratingRow" data-default="Rating">Rating <span class="chevron">▾</span></span>
-    <div class="chip-row" id="ratingRow">
-      <span class="chip active" data-rating="0">Όλα</span>
+  <select id="genreSelect" class="filter-select"><option value="">Όλα τα genre</option></select>
+  <select id="platformSelect" class="filter-select">
+    <option value="">Όλες οι πλατφόρμες</option>
+    <option value="6">PC (Microsoft Windows)</option>
+    <option value="167">PlayStation 5</option>
+    <option value="48">PlayStation 4</option>
+    <option value="169">Xbox Series X|S</option>
+    <option value="49">Xbox One</option>
+    <option value="130">Nintendo Switch</option>
+  </select>
+  <div class="filter-group">
+    <div class="chip-row" id="ratingRow" style="position:static;display:flex;background:none;border:none;box-shadow:none;padding:0;">
+      <span class="chip active" data-rating="0">Rating: Όλα</span>
       <span class="chip" data-rating="60">60+</span>
       <span class="chip" data-rating="75">75+</span>
       <span class="chip" data-rating="90">90+</span>
@@ -406,8 +403,8 @@
   const resultsCount = document.getElementById("resultsCount");
   const searchInput = document.getElementById("searchInput");
   const yearSelect = document.getElementById("yearSelect");
-  const genreRow = document.getElementById("genreRow");
-  const platformRow = document.getElementById("platformRow");
+  const genreSelect = document.getElementById("genreSelect");
+  const platformSelect = document.getElementById("platformSelect");
   const ratingRow = document.getElementById("ratingRow");
   const loadMoreWrap = document.getElementById("loadMoreWrap");
   const loadMoreBtn = document.getElementById("loadMoreBtn");
@@ -455,8 +452,19 @@
   }
 
   fetchGenres();
-  renderPlatformChips();
   fetchGames(true);
+
+  genreSelect.addEventListener("change", () => {
+    state.genre = genreSelect.value;
+    state.offset = 0;
+    fetchGames(true);
+  });
+
+  platformSelect.addEventListener("change", () => {
+    state.platform = platformSelect.value;
+    state.offset = 0;
+    fetchGames(true);
+  });
 
   searchInput.addEventListener("input", () => {
     searchClear.classList.toggle("visible", searchInput.value.length > 0);
@@ -573,39 +581,11 @@
     fetchGames(true);
   });
 
-  document.querySelectorAll(".filter-label").forEach(label => {
-    label.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const group = label.closest(".filter-group");
-      const wasOpen = group.classList.contains("open");
-      document.querySelectorAll(".filter-group.open").forEach(g => g.classList.remove("open"));
-      if(!wasOpen) group.classList.add("open");
-    });
-  });
-  document.addEventListener("click", (e) => {
-    if(!e.target.closest(".filter-group")) document.querySelectorAll(".filter-group.open").forEach(g => g.classList.remove("open"));
-  });
-
-  function updateFilterLabel(groupId, text){
-    const group = document.getElementById(groupId);
-    const label = group.querySelector(".filter-label");
-    const def = label.dataset.default;
-    if(text && text !== "Όλα"){
-      label.innerHTML = `${escapeHtml(text)} <span class="chevron">▾</span>`;
-      label.classList.add("has-value");
-    } else {
-      label.innerHTML = `${def} <span class="chevron">▾</span>`;
-      label.classList.remove("has-value");
-    }
-  }
-
   const clearFiltersBtn = document.getElementById("clearFiltersBtn");
   clearFiltersBtn.addEventListener("click", () => {
     state.genre = ""; state.platform = ""; state.rating = 0; state.year = ""; state.sort = "popular"; state.offset = 0;
-    [...genreRow.children].forEach((c,i) => c.classList.toggle("active", i===0));
-    [...platformRow.children].forEach((c,i) => c.classList.toggle("active", i===0));
+    genreSelect.value = ""; platformSelect.value = "";
     [...ratingRow.children].forEach((c,i) => c.classList.toggle("active", i===0));
-    updateFilterLabel("genreGroup", ""); updateFilterLabel("platformGroup", ""); updateFilterLabel("ratingGroup", "");
     yearSelect.value = "";
     sortSelect.value = "popular";
     fetchGames(true);
@@ -619,46 +599,10 @@
   async function fetchGenres(){
     try{
       const data = await igdb("genres", "fields name; sort name asc; limit 20;");
-      let html = `<span class="chip active" data-genre="">Όλα</span>`;
-      (data || []).forEach(g => { html += `<span class="chip" data-genre="${g.id}">${g.name}</span>`; });
-      genreRow.innerHTML = html;
-      genreRow.addEventListener("click", (e) => {
-        const chip = e.target.closest(".chip");
-        if(!chip) return;
-        [...genreRow.children].forEach(c => c.classList.remove("active"));
-        chip.classList.add("active");
-        state.genre = chip.dataset.genre;
-        state.offset = 0;
-        updateFilterLabel("genreGroup", chip.textContent.trim());
-        document.getElementById("genreGroup").classList.remove("open");
-        fetchGames(true);
-      });
+      let html = `<option value="">Όλα τα genre</option>`;
+      (data || []).forEach(g => { html += `<option value="${g.id}">${g.name}</option>`; });
+      genreSelect.innerHTML = html;
     }catch(err){ console.error("Σφάλμα genres:", err); }
-  }
-
-  function renderPlatformChips(){
-    const commonPlatforms = [
-      { id: 6, name: "PC (Microsoft Windows)" },
-      { id: 167, name: "PlayStation 5" },
-      { id: 48, name: "PlayStation 4" },
-      { id: 169, name: "Xbox Series X|S" },
-      { id: 49, name: "Xbox One" },
-      { id: 130, name: "Nintendo Switch" }
-    ];
-    let html = `<span class="chip active" data-platform="">Όλα</span>`;
-    commonPlatforms.forEach(p => { html += `<span class="chip" data-platform="${p.id}">${p.name}</span>`; });
-    platformRow.innerHTML = html;
-    platformRow.addEventListener("click", (e) => {
-      const chip = e.target.closest(".chip");
-      if(!chip) return;
-      [...platformRow.children].forEach(c => c.classList.remove("active"));
-      chip.classList.add("active");
-      state.platform = chip.dataset.platform;
-      state.offset = 0;
-      updateFilterLabel("platformGroup", chip.textContent.trim());
-      document.getElementById("platformGroup").classList.remove("open");
-      fetchGames(true);
-    });
   }
 
   function buildWhere(){
@@ -705,7 +649,7 @@
         popular: "sort total_rating_count desc;",
         rating: "sort aggregated_rating desc;",
         newest: "sort first_release_date desc;",
-        upcoming: "sort first_release_date asc;"
+        upcoming: "sort hypes desc;"
       };
       const sortField = state.search ? "sort total_rating_count desc;" : sortMap[state.sort];
       const query = `fields name, cover.image_id, aggregated_rating, first_release_date, genres.name, platforms.name; ${buildWhere()} ${sortField} limit ${PAGE_SIZE}; offset ${state.offset};`;
