@@ -631,10 +631,6 @@
       const end = Math.floor(new Date(`${state.year}-12-31`).getTime()/1000);
       clauses.push(`first_release_date >= ${start} & first_release_date <= ${end}`);
     }
-    if(state.search){
-      const words = state.search.replace(/"/g,'').trim().split(/\s+/);
-      words.forEach(w => clauses.push(`name ~ *"${w}"*`));
-    }
     if(state.sort === "upcoming" && !state.search){
       clauses.push(`first_release_date >= ${Math.floor(Date.now()/1000)}`);
     } else if(!state.year){
@@ -667,8 +663,9 @@
         newest: "sort first_release_date desc;",
         upcoming: "sort hypes desc;"
       };
-      const sortField = state.search ? "sort total_rating_count desc;" : sortMap[state.sort];
-      const query = `fields name, cover.image_id, aggregated_rating, first_release_date, genres.name, platforms.name; ${buildWhere()} ${sortField} limit ${PAGE_SIZE}; offset ${state.offset};`;
+      const sortField = state.search ? "" : sortMap[state.sort];
+      const searchClause = state.search ? `search "${state.search.replace(/"/g,'')}";` : "";
+      const query = `${searchClause} fields name, cover.image_id, aggregated_rating, first_release_date, genres.name, platforms.name; ${buildWhere()} ${sortField} limit ${PAGE_SIZE}; offset ${state.offset};`;
       const data = await igdb("games", query);
 
       if(reset) stateMsg.innerHTML = "";
