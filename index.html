@@ -99,6 +99,24 @@
   .search-box input::placeholder{ color: var(--muted); }
   .search-box input:focus{ border-color: var(--neon-cyan); box-shadow: 0 0 0 1px var(--neon-cyan), 0 0 18px rgba(0,240,255,0.35); }
   .search-box svg{ position:absolute; left:15px; top:50%; transform:translateY(-50%); width:18px; height:18px; stroke: var(--neon-cyan); }
+  .suggest-dropdown{
+    position:absolute; top: calc(100% + 6px); left:0; right:0; z-index: 40;
+    background: var(--panel); border:1px solid var(--line-bright); border-radius: 8px;
+    max-height: 360px; overflow-y:auto; box-shadow: 0 12px 30px rgba(0,0,0,0.55);
+    display:none;
+  }
+  .suggest-dropdown.open{ display:block; }
+  .suggest-item{
+    display:flex; align-items:center; gap:12px; padding: 9px 14px; cursor:pointer;
+    border-bottom: 1px solid var(--line); transition: background .12s ease;
+  }
+  .suggest-item:last-child{ border-bottom:none; }
+  .suggest-item:hover, .suggest-item.active{ background: rgba(0,240,255,0.08); }
+  .suggest-item img{ width:38px; height:50px; object-fit:cover; border-radius:3px; background:var(--panel-2); flex-shrink:0; }
+  .suggest-item .noimg{ width:38px; height:50px; border-radius:3px; background:var(--panel-2); flex-shrink:0; }
+  .suggest-title{ font-family:'Rajdhani',sans-serif; font-weight:600; font-size:14px; color:var(--text); }
+  .suggest-year{ font-family:'Share Tech Mono',monospace; font-size:11.5px; color:var(--muted); margin-top:2px; }
+  .suggest-empty{ padding: 14px; text-align:center; color: var(--muted); font-size:13px; font-family:'Share Tech Mono',monospace; }
   .search-clear{
     position:absolute; right:12px; top:50%; transform:translateY(-50%);
     width:26px; height:26px; border-radius:50%; border:1px solid var(--line);
@@ -335,8 +353,9 @@
     <div class="search-row">
       <div class="search-box">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input id="searchInput" type="text" placeholder="Αναζήτηση τίτλου (π.χ. Elden Ring, Zelda...)">
+        <input id="searchInput" type="text" placeholder="Αναζήτηση τίτλου (π.χ. Elden Ring, Zelda...)" autocomplete="off">
         <button id="searchClear" class="search-clear" type="button" aria-label="Καθαρισμός αναζήτησης">✕</button>
+        <div class="suggest-dropdown" id="suggestDropdown"></div>
       </div>
       <select id="yearSelect" class="year-select"></select>
     </div>
@@ -474,19 +493,85 @@
     fetchGames(true);
   });
 
+  const suggestDropdown = document.getElementById("suggestDropdown");
+  let suggestSeq = 0;
+  let suggestTimer = null;
+
   searchInput.addEventListener("input", () => {
     searchClear.classList.toggle("visible", searchInput.value.length > 0);
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
       state.search = searchInput.value.trim();
       state.offset = 0;
+      suggestDropdown.classList.remove("open");
       fetchGames(true);
     }, 450);
+
+    clearTimeout(suggestTimer);
+    const term = searchInput.value.trim();
+    if(term.length < 2){
+      suggestDropdown.classList.remove("open");
+      suggestDropdown.innerHTML = "";
+      return;
+    }
+    suggestTimer = setTimeout(() => fetchSuggestions(term), 250);
+  });
+
+  async function fetchSuggestions(term){
+    const mySeq = ++suggestSeq;
+    try{
+      const query = `search "${term.replace(/"/g,'')}"; fields name, cover.image_id, first_release_date; limit 6;`;
+      const data = await igdb("games", query);
+      if(mySeq !== suggestSeq) return; // ξεπερασμένη απάντηση, αγνόησέ την
+      if(searchInput.value.trim() !== term) return; // ο χρήστης άλλαξε το κείμενο στο μεταξύ
+      renderSuggestions(data || []);
+    }catch(err){
+      console.error("Σφάλμα suggestions:", err);
+    }
+  }
+
+  function renderSuggestions(items){
+    suggestDropdown.scrollTop = 0; // reset εσωτερικού scroll σε κάθε νέο render
+    if(!items.length){
+      suggestDropdown.innerHTML = `<div class="suggest-empty">Δεν βρέθηκαν τίτλοι.</div>`;
+      suggestDropdown.classList.add("open");
+      return;
+    }
+    suggestDropdown.innerHTML = items.map(g => {
+      const img = g.cover && g.cover.image_id ? `${IMG_BASE}/t_cover_small/${g.cover.image_id}.jpg` : "";
+      const year = g.first_release_date ? new Date(g.first_release_date * 1000).getFullYear() : "—";
+      return `
+        <div class="suggest-item" data-id="${g.id}" data-name="${escapeHtml(g.name)}">
+          ${img ? `<img src="${img}" alt="">` : `<div class="noimg"></div>`}
+          <div>
+            <div class="suggest-title">${escapeHtml(g.name)}</div>
+            <div class="suggest-year">${year}</div>
+          </div>
+        </div>
+      `;
+    }).join("");
+    suggestDropdown.classList.add("open");
+    suggestDropdown.querySelectorAll(".suggest-item").forEach(item => {
+      item.addEventListener("click", () => {
+        suggestDropdown.classList.remove("open");
+        searchInput.value = item.dataset.name;
+        openGameDetail(item.dataset.id, item.dataset.name);
+      });
+    });
+  }
+
+  document.addEventListener("click", (e) => {
+    if(!e.target.closest(".search-box")) suggestDropdown.classList.remove("open");
+  });
+  searchInput.addEventListener("focus", () => {
+    if(suggestDropdown.innerHTML.trim()) suggestDropdown.classList.add("open");
   });
 
   searchClear.addEventListener("click", () => {
     searchInput.value = "";
     searchClear.classList.remove("visible");
+    suggestDropdown.classList.remove("open");
+    suggestDropdown.innerHTML = "";
     state.search = "";
     state.offset = 0;
     fetchGames(true);
