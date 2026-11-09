@@ -443,6 +443,7 @@
   let state = { search:"", genre:"", platform:"", rating:0, year:"", sort:"popular", offset:0, loading:false };
   let requestSeq = 0;
   let activeSearch = "";
+  let activePartialMatch = false;
   let debounceTimer = null;
   const PAGE_SIZE = 24;
 
@@ -732,22 +733,32 @@
       const sortField = state.search ? "" : sortMap[state.sort];
       const where = buildWhere();
       const offset = state.offset;
-      const fetchPage = (term) => {
-        const searchClause = term ? `search "${term}";` : "";
-        return igdb("games", `${searchClause} fields name, cover.image_id, aggregated_rating, first_release_date, genres.name, platforms.name; ${where} ${sortField} limit ${PAGE_SIZE}; offset ${offset};`);
+      const fetchPage = (term, partialMatch) => {
+        const searchClause = term && !partialMatch ? `search "${term}";` : "";
+        const filter = partialMatch
+          ? `where name ~ *"${term}"* ${where ? "& " + where.slice(6) : ";"}`
+          : where;
+        return igdb("games", `${searchClause} fields name, cover.image_id, aggregated_rating, first_release_date, genres.name, platforms.name; ${filter} ${partialMatch ? "sort name asc;" : sortField} limit ${PAGE_SIZE}; offset ${offset};`);
       };
       let term = reset ? state.search.replace(/["\\]/g, " ").replace(/\s+/g, " ").trim() : activeSearch;
       const fallback = term.replace(/\b(?:remake|remaster|remastered)\b/gi, " ").replace(/\s+/g, " ").trim();
-      let data = await fetchPage(term);
+      let partialMatch = !reset && activePartialMatch;
+      let data = await fetchPage(term, partialMatch);
       if(myRequest !== requestSeq) return;
       if(reset && data.length === 0 && fallback && fallback !== term){
         term = fallback;
         data = await fetchPage(term);
       }
+      if(myRequest !== requestSeq) return;
+      if(reset && data.length === 0 && term){
+        partialMatch = true;
+        data = await fetchPage(term, partialMatch);
+      }
 
       if(myRequest !== requestSeq) return; // ξεπερασμένη απάντηση, αγνόησέ την
 
       activeSearch = term;
+      activePartialMatch = partialMatch;
       if(reset) stateMsg.innerHTML = "";
       resultsCount.textContent = `${(data || []).length + state.offset}+ ΑΠΟΤΕΛΕΣΜΑΤΑ`;
 
