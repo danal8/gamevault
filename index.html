@@ -539,6 +539,33 @@
     }
   }
 
+  async function loadSteamReviews(appId, target){
+    try {
+      const response = await fetch(PROXY_URL.replace(/igdb-proxy$/, "gamevault-steam-reviews") + "?appid=" + appId, {
+        headers: { Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdGJ0dWd6aWx4c2ZxeGxwb2ZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NTM0MTcsImV4cCI6MjA5NjEyOTQxN30.EE5xUVk_M9JVNaA1eSdqYeQxovLgLEzmIV34HHjJ3EU" },
+        signal: AbortSignal.timeout(9000)
+      });
+      if(!response.ok) throw new Error("Steam reviews unavailable");
+      const reviews = await response.json();
+      const format = new Intl.NumberFormat("el-GR");
+      const rows = [
+        ["Πρόσφατες κριτικές (30 ημέρες)", reviews.recent],
+        ["Κριτικές στα ελληνικά", reviews.greek]
+      ];
+      target.textContent = "";
+      for(const [label, summary] of rows){
+        if(!Number.isInteger(summary?.percent) || summary.percent < 0 || summary.percent > 100 ||
+           !Number.isSafeInteger(summary.count) || summary.count <= 0) continue;
+        const row = document.createElement("div");
+        row.textContent = label + ": " + format.format(summary.percent) + "% θετικές (" + format.format(summary.count) + ")";
+        target.appendChild(row);
+      }
+      if(!target.hasChildNodes()) target.remove();
+    } catch {
+      target.remove();
+    }
+  }
+
   function renderModal(game){
     const cover = game.cover && game.cover.image_id ? `${IMG_BASE}/t_1080p/${game.cover.image_id}.jpg` : "";
     const shots = (game.screenshots || []).slice(0, 6).map(s => `${IMG_BASE}/t_screenshot_big/${s.image_id}.jpg`);
@@ -566,6 +593,7 @@
         </div>
         ${game.summary ? `<p class="modal-summary">${escapeHtml(game.summary)}</p>` : ""}
         ${shots.length ? `<div class="modal-shots">${shots.map(s => `<img src="${s}" loading="lazy" alt="Στιγμιότυπο" data-full="${s}">`).join("")}</div>` : ""}
+        ${steamAppId ? `<div class="modal-summary" id="steamReviewSummary" aria-live="polite">Φόρτωση αξιολογήσεων Steam…</div>` : ""}
         <div class="modal-actions">
           ${steamAppId ? `<a target="_blank" rel="noopener" href="https://store.steampowered.com/app/${steamAppId}/#app_reviews_hash">Αξιολογήσεις παικτών στο Steam ↗</a>` : ""}
           <a class="trailer" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query=${encodedName}+trailer">Trailer ↗</a>
@@ -574,6 +602,7 @@
       </div>
     `;
     document.getElementById("modalCloseBtn").addEventListener("click", closeModal);
+    if(steamAppId) loadSteamReviews(steamAppId, document.getElementById("steamReviewSummary"));
     lightboxShots = shots;
     modalContent.querySelectorAll(".modal-shots img").forEach((img, idx) => {
       img.addEventListener("click", () => showLightbox(idx));
