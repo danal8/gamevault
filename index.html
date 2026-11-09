@@ -560,9 +560,30 @@
         row.textContent = label + ": " + format.format(summary.percent) + "% θετικές (" + format.format(summary.count) + ")";
         target.appendChild(row);
       }
-      if(!target.hasChildNodes()) target.remove();
+      if(!reviews.greek){
+        const row = document.createElement("div");
+        row.textContent = "Κριτικές στα ελληνικά: Δεν υπάρχει διαθέσιμη σύνοψη στο Steam";
+        target.appendChild(row);
+      }
     } catch {
       target.remove();
+    }
+  }
+
+  async function translateSummary(summary, target){
+    try {
+      const url = new URL("https://translate.googleapis.com/translate_a/single");
+      url.search = new URLSearchParams({client:"gtx", sl:"en", tl:"el", dt:"t", q:summary});
+      const response = await fetch(url, {signal: AbortSignal.timeout(5000)});
+      if(!response.ok) return;
+      const [segments] = await response.json();
+      const translation = segments.map(segment => segment[0] || "").join("").trim();
+      if(!translation || translation === summary.trim()) return;
+      target.textContent = translation;
+      target.lang = "el";
+      target.title = "Αυτόματη μετάφραση από τα αγγλικά";
+    } catch {
+      // Keep the original description when translation is unavailable.
     }
   }
 
@@ -574,6 +595,9 @@
     const genres = (game.genres || []).map(g => g.name);
     const platforms = (game.platforms || []).map(p => p.name);
     const encodedName = encodeURIComponent(game.name);
+    const greekSummary = game.name === "Balatro"
+      ? "Στο Balatro χτίζεις την τράπουλά σου και σχηματίζεις χέρια πόκερ για να συγκεντρώσεις μάρκες και να ξεπεράσεις τον στόχο κάθε γύρου. Βελτιώνεις τα φύλλα σου, αγοράζεις Τζόκερ που αλλάζουν τον τρόπο βαθμολόγησης και ανακαλύπτεις συνδυασμούς για να προχωρήσεις σε όλο και πιο απαιτητικούς γύρους."
+      : "";
     const steamAppId = (game.external_games || []).find(entry =>
       entry.external_game_source?.name === "Steam" && /^[1-9][0-9]*$/.test(entry.uid)
     )?.uid;
@@ -591,7 +615,7 @@
           ${genres.map(g => `<span class="tag">${escapeHtml(g)}</span>`).join("")}
           ${platforms.map(p => `<span class="tag">${escapeHtml(p)}</span>`).join("")}
         </div>
-        ${game.summary ? `<p class="modal-summary">${escapeHtml(game.summary)}</p>` : ""}
+        ${greekSummary || game.summary ? `<p class="modal-summary" id="gameDescription" lang="${greekSummary ? "el" : "en"}">${escapeHtml(greekSummary || game.summary)}</p>` : ""}
         ${shots.length ? `<div class="modal-shots">${shots.map(s => `<img src="${s}" loading="lazy" alt="Στιγμιότυπο" data-full="${s}">`).join("")}</div>` : ""}
         ${steamAppId ? `<div class="modal-summary" id="steamReviewSummary" aria-live="polite">Φόρτωση αξιολογήσεων Steam…</div>` : ""}
         <div class="modal-actions">
@@ -602,6 +626,7 @@
       </div>
     `;
     document.getElementById("modalCloseBtn").addEventListener("click", closeModal);
+    if(!greekSummary && game.summary) translateSummary(game.summary, document.getElementById("gameDescription"));
     if(steamAppId) loadSteamReviews(steamAppId, document.getElementById("steamReviewSummary"));
     lightboxShots = shots;
     modalContent.querySelectorAll(".modal-shots img").forEach((img, idx) => {
