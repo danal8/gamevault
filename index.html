@@ -527,7 +527,7 @@
     modalContent.innerHTML = `<div class="modal-topbar"><button class="modal-close" id="modalCloseBtn">✕</button></div><div class="modal-loading"><div class="spinner"></div>ΦΟΡΤΩΣΗ ΛΕΠΤΟΜΕΡΕΙΩΝ...</div>`;
     document.getElementById("modalCloseBtn").addEventListener("click", closeModal);
     try{
-      const query = `fields name, summary, cover.image_id, screenshots.image_id, aggregated_rating, first_release_date, genres.name, platforms.name; where id = ${gameId};`;
+      const query = `fields name, summary, cover.image_id, screenshots.image_id, aggregated_rating, first_release_date, genres.name, platforms.name, external_games.uid, external_games.external_game_source.name; where id = ${gameId};`;
       const data = await igdb("games", query);
       const game = (data || [])[0];
       if(!game){ modalContent.innerHTML = `<div class="modal-topbar"><button class="modal-close" id="modalCloseBtn">✕</button></div><div class="modal-loading">Δεν βρέθηκαν λεπτομέρειες.</div>`; document.getElementById("modalCloseBtn").addEventListener("click", closeModal); return; }
@@ -547,6 +547,9 @@
     const genres = (game.genres || []).map(g => g.name);
     const platforms = (game.platforms || []).map(p => p.name);
     const encodedName = encodeURIComponent(game.name);
+    const steamAppId = (game.external_games || []).find(entry =>
+      entry.external_game_source?.name === "Steam" && /^[1-9][0-9]*$/.test(entry.uid)
+    )?.uid;
 
     modalContent.innerHTML = `
       <div class="modal-topbar"><button class="modal-close" id="modalCloseBtn">✕</button></div>
@@ -564,6 +567,7 @@
         ${game.summary ? `<p class="modal-summary">${escapeHtml(game.summary)}</p>` : ""}
         ${shots.length ? `<div class="modal-shots">${shots.map(s => `<img src="${s}" loading="lazy" alt="Στιγμιότυπο" data-full="${s}">`).join("")}</div>` : ""}
         <div class="modal-actions">
+          ${steamAppId ? `<a target="_blank" rel="noopener" href="https://store.steampowered.com/app/${steamAppId}/#app_reviews_hash">Αξιολογήσεις παικτών στο Steam ↗</a>` : ""}
           <a class="trailer" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query=${encodedName}+trailer">Trailer ↗</a>
           <a class="walkthrough" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query=${encodedName}+walkthrough">Walkthrough ↗</a>
         </div>
