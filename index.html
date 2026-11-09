@@ -358,10 +358,10 @@
   <div class="rating-clear-row">
     <div class="filter-group">
       <div class="chip-row" id="ratingRow" style="position:static;display:flex;background:none;border:none;box-shadow:none;padding:0;">
-        <span class="chip active" data-rating="0">Rating: Όλα</span>
-        <span class="chip" data-rating="60">60+</span>
-        <span class="chip" data-rating="75">75+</span>
-        <span class="chip" data-rating="90">90+</span>
+        <button type="button" class="chip active" data-rating="0" aria-pressed="true">Rating: Όλα</button>
+        <button type="button" class="chip" data-rating="60" aria-pressed="false">60+</button>
+        <button type="button" class="chip" data-rating="75" aria-pressed="false">75+</button>
+        <button type="button" class="chip" data-rating="90" aria-pressed="false">90+</button>
       </div>
     </div>
     <button class="clear-filters-btn" id="clearFiltersBtn">Καθαρισμός</button>
@@ -615,15 +615,19 @@
     fetchGames(true);
   });
 
+  function selectRating(chip){
+    for(const option of ratingRow.children){
+      option.classList.toggle("active", option === chip);
+      option.setAttribute("aria-pressed", String(option === chip));
+    }
+  }
+
   ratingRow.addEventListener("click", (e) => {
     const chip = e.target.closest(".chip");
     if(!chip) return;
-    [...ratingRow.children].forEach(c => c.classList.remove("active"));
-    chip.classList.add("active");
+    selectRating(chip);
     state.rating = parseFloat(chip.dataset.rating);
     state.offset = 0;
-    updateFilterLabel("ratingGroup", chip.textContent.trim());
-    document.getElementById("ratingGroup").classList.remove("open");
     fetchGames(true);
   });
 
@@ -638,7 +642,7 @@
   clearFiltersBtn.addEventListener("click", () => {
     state.genre = ""; state.platform = ""; state.rating = 0; state.year = ""; state.sort = "popular"; state.offset = 0;
     genreSelect.value = ""; platformSelect.value = "";
-    [...ratingRow.children].forEach((c,i) => c.classList.toggle("active", i===0));
+    selectRating(ratingRow.firstElementChild);
     yearSelect.value = "";
     sortSelect.value = "popular";
     fetchGames(true);
@@ -651,7 +655,7 @@
 
   async function fetchGenres(){
     try{
-      const data = await igdb("genres", "fields name; sort name asc; limit 20;");
+      const data = await igdb("genres", "fields name; sort name asc; limit 100;");
       let html = `<option value="">Όλα τα genre</option>`;
       (data || []).forEach(g => { html += `<option value="${g.id}">${g.name}</option>`; });
       genreSelect.innerHTML = html;
