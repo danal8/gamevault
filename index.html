@@ -353,6 +353,7 @@
     <option value="169">Xbox Series X|S</option>
     <option value="49">Xbox One</option>
     <option value="130">Nintendo Switch</option>
+    <option value="508">Nintendo Switch 2</option>
   </select>
   <div class="rating-clear-row">
     <div class="filter-group">
@@ -441,6 +442,7 @@
 
   let state = { search:"", genre:"", platform:"", rating:0, year:"", sort:"popular", offset:0, loading:false };
   let requestSeq = 0;
+  let activeSearch = "";
   let debounceTimer = null;
   const PAGE_SIZE = 24;
 
@@ -485,6 +487,7 @@
   });
 
   searchClear.addEventListener("click", () => {
+    clearTimeout(debounceTimer);
     searchInput.value = "";
     searchClear.classList.remove("visible");
     state.search = "";
@@ -629,16 +632,15 @@
     if(state.rating > 0) clauses.push(`aggregated_rating >= ${state.rating}`);
     if(state.year){
       const start = Math.floor(new Date(`${state.year}-01-01`).getTime()/1000);
-      const end = Math.floor(new Date(`${state.year}-12-31`).getTime()/1000);
-      clauses.push(`first_release_date >= ${start} & first_release_date <= ${end}`);
+      const end = Date.UTC(Number(state.year) + 1, 0, 1) / 1000;
+      clauses.push(`first_release_date >= ${start} & first_release_date < ${end}`);
     }
     if(state.sort === "upcoming" && !state.search){
       clauses.push(`first_release_date >= ${Math.floor(Date.now()/1000)}`);
-    } else if(!state.year){
+    } else if(!state.year && !state.search){
       clauses.push(`first_release_date <= ${Math.floor(Date.now()/1000)}`);
     }
-    clauses.push(`cover != null`);
-    if(state.search) clauses.push(`aggregated_rating != null`);
+    if(!state.search) clauses.push(`cover != null`);
     if(!state.search && state.sort === "popular") clauses.push(`total_rating_count >= 10`);
     if(!state.search && state.sort === "rating") clauses.push(`aggregated_rating_count >= 3`);
     if(!state.search && state.sort === "upcoming") clauses.push(`hypes >= 3`);
@@ -666,12 +668,24 @@
         upcoming: "sort hypes desc;"
       };
       const sortField = state.search ? "" : sortMap[state.sort];
-      const searchClause = state.search ? `search "${state.search.replace(/"/g,'')}";` : "";
-      const query = `${searchClause} fields name, cover.image_id, aggregated_rating, first_release_date, genres.name, platforms.name; ${buildWhere()} ${sortField} limit ${PAGE_SIZE}; offset ${state.offset};`;
-      const data = await igdb("games", query);
+      const where = buildWhere();
+      const offset = state.offset;
+      const fetchPage = (term) => {
+        const searchClause = term ? `search "${term}";` : "";
+        return igdb("games", `${searchClause} fields name, cover.image_id, aggregated_rating, first_release_date, genres.name, platforms.name; ${where} ${sortField} limit ${PAGE_SIZE}; offset ${offset};`);
+      };
+      let term = reset ? state.search.replace(/["\\]/g, " ").replace(/\s+/g, " ").trim() : activeSearch;
+      const fallback = term.replace(/\b(?:remake|remaster|remastered)\b/gi, " ").replace(/\s+/g, " ").trim();
+      let data = await fetchPage(term);
+      if(myRequest !== requestSeq) return;
+      if(reset && data.length === 0 && fallback && fallback !== term){
+        term = fallback;
+        data = await fetchPage(term);
+      }
 
       if(myRequest !== requestSeq) return; // ξεπερασμένη απάντηση, αγνόησέ την
 
+      activeSearch = term;
       if(reset) stateMsg.innerHTML = "";
       resultsCount.textContent = `${(data || []).length + state.offset}+ ΑΠΟΤΕΛΕΣΜΑΤΑ`;
 
@@ -683,14 +697,18 @@
 
       loadMoreWrap.style.display = (data && data.length === PAGE_SIZE) ? "flex" : "none";
     }catch(err){
+      if(myRequest !== requestSeq) return;
+      if(!reset) state.offset -= PAGE_SIZE;
       console.error("Σφάλμα φόρτωσης παιχνιδιών:", err);
       if(reset){
         stateMsg.innerHTML = `<div class="state-msg"><div class="big">Πρόβλημα σύνδεσης</div>Δοκίμασε ξανά σε λίγο.</div>`;
       }
     } finally {
-      state.loading = false;
-      loadMoreBtn.disabled = false;
-      loadMoreBtn.textContent = "Περισσότερα παιχνίδια";
+      if(myRequest === requestSeq){
+        state.loading = false;
+        loadMoreBtn.disabled = false;
+        loadMoreBtn.textContent = "Περισσότερα παιχνίδια";
+      }
     }
   }
 
